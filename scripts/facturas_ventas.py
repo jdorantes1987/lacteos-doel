@@ -35,3 +35,14 @@ class FacturaVentasConsultas:
             fact_det = get_read_sql(sql, self.conexion)
             fact_det['co_tipo_doc'] = 'FACT'
             return fact_det
+        
+    def data_factura_venta_sin_ruta(self, **kwargs):
+            
+            sql = """
+                EXEC RepFacturaVentaxFecha 
+                @cCo_Transporte_d = N'NA',
+                @cCo_Transporte_h = N'NA',
+                @cAnulado = N'NOT'
+            """
+            ventas = get_read_sql(sql, self.conexion)
+            return ventas
