@@ -37,12 +37,18 @@ class FacturaVentasConsultas:
             return fact_det
         
     def data_factura_venta_sin_ruta(self, **kwargs):
-            
-            sql = """
-                EXEC RepFacturaVentaxFecha 
-                @cCo_Transporte_d = N'NA',
-                @cCo_Transporte_h = N'NA',
-                @cAnulado = N'NOT'
-            """
-            ventas = get_read_sql(sql, self.conexion)
-            return ventas
+        fecha_d, fecha_h = kwargs.get('fecha_d', 'all'), kwargs.get('fecha_h', 'all')
+        if fecha_d == 'all':
+           fecha_d = 'NULL'
+           fecha_h = 'NULL'
+        sql = f"""
+            EXEC RepFacturaVentaxFecha
+            @dCo_fecha_d = '{fecha_d}',
+            @dCo_fecha_h = '{fecha_h}', 
+            @cCo_Transporte_d = N'NA',
+            @cCo_Transporte_h = N'NA',
+            @cAnulado = N'NOT'
+        """
+        sql = sql.replace("'NULL'", 'NULL')
+        ventas = get_read_sql(sql, self.conexion)
+        return ventas

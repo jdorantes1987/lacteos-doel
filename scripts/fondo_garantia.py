@@ -3,7 +3,7 @@ from scripts.notas_entrega_consultas import NotasEntregaConsultas
 from scripts.datos_profit import DatosProfit
 from scripts.facturas_ventas import FacturaVentasConsultas
 
-path_file_fondo_garantia = './tabla_fondo_de_garantia.xlsx'
+path_file_fondo_garantia = './files/tabla_fondo_de_garantia.xlsx'
 
 class FondoGarantia:
     

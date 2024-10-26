@@ -31,7 +31,7 @@ class LibroCompraVenta:
         data_bcv_sort = df_data_bcv.sort_values(by=['fecha'], ascending=[True])  # se debe ordenar el df para poder conbinar    
         libro = self.view_rep_libro_ventas(fecha_d=fecha_d, fecha_h=fecha_h)
         if libro['nro_doc'].loc[0] != None:
-            libro['tipo_doc'] = libro.apply(lambda x: 'FACTURA' if x['nro_doc'][0]!='i' else 'RET', axis=1)
+            libro['tipo_doc'] = libro['co_tipo_doc'] 
             libro['num_comprobante'] = libro.apply(lambda x: '' if x['nro_doc'][0]!='i' else x['num_comprobante'], axis=1)
             libro['fec_comprobante'] = libro.apply(lambda x: '' if x['nro_doc'][0]!='i' else x['fec_comprobante'], axis=1)
             libro['fecha_emis'] = to_datetime(libro['fecha_emis']).dt.normalize()
@@ -85,7 +85,7 @@ class LibroCompraVenta:
         data_bcv_sort = df_data_bcv.sort_values(by=['fecha'], ascending=[True])  # se debe ordenar el df para poder conbinar    
         libro = self.view_rep_libro_compras(fecha_d=fecha_d, fecha_h=fecha_h)
         if libro['nro_doc'].loc[0] != None:
-            libro['tipo_doc'] = libro.apply(lambda x: 'FACTURA' if x['nro_doc'][0]!='i' else 'RET', axis=1)
+            libro['tipo_doc'] = libro['co_tipo_doc'] 
             libro['num_comprobante'] = libro.apply(lambda x: '' if x['nro_doc'][0]!='i' else x['num_comprobante'], axis=1)
             libro['fec_comprobante'] = libro.apply(lambda x: '' if x['nro_doc'][0]!='i' else x['fec_comprobante'], axis=1)
             libro['fecha_emis'] = to_datetime(libro['fecha_emis']).dt.normalize()
