@@ -1,3 +1,4 @@
+from numpy import nan
 from pandas import merge, concat
 from scripts.sql_read import get_read_sql
 from scripts.datos_profit import DatosProfit
@@ -43,7 +44,8 @@ class Inventario:
         mov_anterior_fechas = mov_anterior_fechas.groupby(['co_art', 'art_des', 'co_alma']).agg({'total_entrada':'sum', 'total_salida':'sum'}).reset_index()
         mov_anterior_fechas.rename(columns={'total_entrada':'total_entrada_sa', 'total_salida':'total_salida_sa'}, inplace=True)
         if len(mov_anterior_fechas) > 0:
-            resumen = merge(mov_entre_fechas, mov_anterior_fechas, how='inner')
+            resumen = merge(mov_entre_fechas, mov_anterior_fechas, how='outer')
+            resumen = resumen.infer_objects(copy=False).replace(nan, 0)  # Reemplaza todos los valores nan por cero 0
         else:
             resumen = mov_entre_fechas
             resumen['total_entrada_sa'] = 0.0
