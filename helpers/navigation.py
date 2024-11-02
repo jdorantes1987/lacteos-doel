@@ -39,32 +39,32 @@ def make_sidebar():
 # TODO Rename this here and in `make_sidebar`
 def _extracted_from_make_sidebar():
     st.page_link("pages/page1.py", label="Inicio", icon=None)
-    if ClsUsuariosRoles.roles()['NotasCxc'] == 1:
+    if ClsUsuariosRoles.roles().get('NotasCxc', 0) == 1:
         st.page_link("pages/page2.py", label="Notas de entrega", icon=None)
-    if ClsUsuariosRoles.roles()['AddDev'] == 1:
+    if ClsUsuariosRoles.roles().get('AddDev', 0) == 1:
         st.page_link("pages/page3.py", label="Gestión Ruteros", icon=None)
-    if ClsUsuariosRoles.roles()['Proc_Masiv'] == 1:
+    if ClsUsuariosRoles.roles().get('Proc_Masiv', 0) == 1:
         st.page_link("pages/page4.py", label="Procesos Masivos", icon=None)
-    if ClsUsuariosRoles.roles()['Cxc'] == 1:
+    if ClsUsuariosRoles.roles().get('Cxc', 0) == 1:
         st.page_link("pages/page5.py", label="Cuentas por cobrar", icon=None)
-    if ClsUsuariosRoles.roles()['Trib'] == 1:
+    if ClsUsuariosRoles.roles().get('Trib', 0) == 1:
         st.page_link("pages/page6.py", label="Tributario", icon=None)
-    if ClsUsuariosRoles.roles()['Inventario'] == 1:
+    if ClsUsuariosRoles.roles().get('Inventario', 0) == 1:
         st.page_link("pages/page7.py", label="Inventario", icon=None)
-    if ClsUsuariosRoles.roles()['Compras'] == 1:
+    if ClsUsuariosRoles.roles().get('Compras', 0) == 1:
         st.page_link("pages/page8.py", label="Compras", icon=None)
-    if ClsUsuariosRoles.roles()['EdoCtaRut'] == 1:
+    if ClsUsuariosRoles.roles().get('EdoCtaRut', 0) == 1:
         st.page_link("pages/page9.py", label="Edo. Cta. Rutero", icon=None)
-    if ClsUsuariosRoles.roles()['GanRut'] == 1:
+    if ClsUsuariosRoles.roles().get('GanRut', 0)== 1:
         st.page_link("pages/page10.py", label="Ganancias Ruteros", icon=None)
     st.page_link("pages/page99.py", label="Configuración", icon=None)
 
     st.write("\n" * 2)
     l_modulos = ['DOEL', 'PANA']
     # administra el acceso del usuario a los módulos
-    if ClsUsuariosRoles.roles()['DOEL'] == 0:
+    if ClsUsuariosRoles.roles().get('DOEL', 0) == 0:
         l_modulos.pop(0)
-    elif ClsUsuariosRoles.roles()['PANA'] == 0:
+    elif ClsUsuariosRoles.roles().get('PANA', 0) == 0:
         l_modulos.pop(1)        
 
     indice_mod = l_modulos.index(ClsEmpresa.modulo_seleccionado())
