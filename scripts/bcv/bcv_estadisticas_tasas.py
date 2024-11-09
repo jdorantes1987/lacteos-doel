@@ -1,15 +1,15 @@
+import ssl
 from pandas import DataFrame
 from pandas import concat
 from pandas import to_datetime
 import locale
 import time
-# import urllib.request
-from urllib.request import build_opener, install_opener, urlretrieve, urlcleanup
+from urllib.request import build_opener, urlretrieve, urlcleanup
 from xlrd import open_workbook
-from ssl import create_default_context
 from scripts.bcv.data import path_file_tasas_bcv, historico_tasas_bcv
 
-context = create_default_context()
+ssl._create_default_https_context = ssl._create_unverified_context
+
 url_base = 'https://www.bcv.org.ve/sites/default/files/EstadisticasGeneral'
 dic_year_files = {'2024': ['2_1_2d24_smc.xls', '2_1_2c24_smc.xls','2_1_2b24_smc.xls', '2_1_2a24_smc.xls'],
                   '2023': ['2_1_2d23_smc.xls', '2_1_2c23_smc.xls', '2_1_2c23_smc_60.xls', '2_1_2a23_smc.xls'],
