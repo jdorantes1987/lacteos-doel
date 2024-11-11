@@ -21,7 +21,7 @@ class Devoluciones:
           self.gestor_trasacc = GestorTransacciones(conexion)
           self.cursor = self.gestor_trasacc.get_cursor()
 
-      def resumen_pedidos(self, anio, mes):
+      def resumen_pedidos_dev(self, anio, mes):
           """_Retorna la data de los pedidos que no han sido asociados a una devolución_
 
           Args:
@@ -31,12 +31,12 @@ class Devoluciones:
           Returns:
               _DataFrame_: _Retorna la DataFrame de los pedidos que no han sido asociados a una devolución_
           """
-          df1 = self.estado_de_cuenta_rutero.resumen_pedidos(anio=anio, mes=mes) 
+          df1 = self.estado_de_cuenta_rutero.resumen_pedidos() 
           return df1[df1['campo8'].str.contains('DEV')] # Extrae todos los pedidos por asignar devolucion    
           
       
       def datos_devolucion(self, anio, mes):
-          pedido_x_rutero = self.resumen_pedidos(anio=anio, mes=mes)
+          pedido_x_rutero = self.resumen_pedidos_dev(anio=anio, mes=mes)
           if len(pedido_x_rutero) > 0:
              articulos = DatosProfit(self.conexion).articulos_profit()[['co_art', 'art_des', 'tipo_imp']]
              set_numeros_pedidos = set(pedido_x_rutero['doc_num'])
@@ -71,7 +71,7 @@ class Devoluciones:
            
       def procesar_devolucion(self, anio, mes):
           self.gestor_trasacc.iniciar_transaccion()
-          pedidos_devolucion = self.resumen_pedidos(anio=anio, mes=mes)
+          pedidos_devolucion = self.resumen_pedidos_dev(anio=anio, mes=mes)
           # Es importante ordenar por rutero para que cada devolucion sea generada en base a ese orden
           ruteros = pedidos_devolucion['co_tran'].value_counts().reset_index().sort_values(by='co_tran', ascending=True)
           ruteros = ruteros.reset_index(drop=True)

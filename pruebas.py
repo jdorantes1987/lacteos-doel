@@ -21,6 +21,7 @@ from scripts.compras import ComprasConsultas
 from scripts.cobros import Cobros
 from scripts.devoluciones_consultas import DevolucionesConsultas
 from scripts.fondo_garantia import FondoGarantia
+from scripts.documentos_ventas import DocumentosVentasConsultas
 
 
 
@@ -49,15 +50,16 @@ conexion = ConexionBD(base_de_datos='LDOEL_A')
 # print(Clientes(conexion).clientes_por_sinc_doel())
 #print(CXC(conexion).view_cxc())
 #print(LibroCompraVenta(conexion).libro_compras(fecha_d='20240901', fecha_h='20240904'))
-Inventario(conexion).resumen_mov_inventario_filtrado(fecha_d='20241001', fecha_h='20241031').to_excel('resumen_mov_inventario_filtrado.xlsx')
+#Inventario(conexion).resumen_mov_inventario_filtrado(fecha_d='20241001', fecha_h='20241031').to_excel('resumen_mov_inventario_filtrado.xlsx')
 #print(Inventario(conexion).resumen_inventario_x_articulo_sin_facturas_almacen_principal())
 #EstadoCuentaRutero(conexion).calculo_ganacia_por_factura_comercio(anio='all', mes='all').to_excel('calculo_ganacia_por_factura_comercio.xlsx')
 #EstadoCuentaRutero(conexion).resumen_facturas_comercio_rutero(anio='all', mes='all').to_excel('resumen_facturas_comercio_rutero.xlsx')
-#FacturaVentasConsultas(conexion).data_factura_venta_sin_ruta(fecha_d='20241001', fecha_h='20241025').to_excel('data_factura_venta_sin_ruta.xlsx')
+FacturaVentasConsultas(conexion).data_factura_venta_con_detalle(fecha_d='20241101', fecha_h='20241111').to_excel('data_factura_venta_con_detalle.xlsx')
+#DocumentosVentasConsultas(conexion).saldo_anterior(tip_cli='R', fecha_d='20241101').to_excel('saldo_anterior.xlsx')
 #NotasEntregaConsultas(conexion).data_notas_entrega_con_detalle(anio='all', mes='all').to_excel('data_notas_entrega_con_detalle.xlsx')
 #NotasEntregaConsultas(conexion).ultimos_precios_notas(anio='all', mes='all').to_excel('ultimos_precios_notas.xlsx')
 #print(ComprasConsultas(conexion).datos_vencimientos_productos())
-#EstadoCuentaRutero(conexion).resumen_movimiento_cuenta(anio='all', mes='all').to_excel('resumen_movimiento_cuenta.xlsx')
+#EstadoCuentaRutero(conexion).resumen_movimiento_cuenta(fecha_d='20241101', fecha_h='20241111').to_excel('resumen_movimiento_cuenta.xlsx')
 #DevolucionesConsultas(conexion).data_devolucion_con_detalle(anio='all', mes='all').to_excel('data_devolucion_con_detalle.xlsx')
 #Devoluciones(conexion).datos_devolucion(anio='all', mes='all').to_excel('datos_devolucion.xlsx')
 #cobros = Cobros(conexion).view_cobros_x_cliente()
