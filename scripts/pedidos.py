@@ -5,11 +5,9 @@ class PedidosVentasConsultas:
         self.conexion = conexion
         
     def data_pedido_con_detalle(self, **kwargs):
-            anio, mes = kwargs.get('anio'), kwargs.get('mes')
-            where_anio = f"" if anio == 'all' else f" AND year(ped.fec_reg)='{anio}'"
-            where_all = "WHERE ped.anulado=0 " + where_anio
-            where_mes = f"WHERE ped.anulado=0 AND year(ped.fec_reg)='{anio}' and month(ped.fec_reg)='{mes}'"
-            where = where_all if mes == 'all' else where_mes
+            fecha_d, fecha_h = kwargs.get('fecha_d', 'all'), kwargs.get('fecha_h', 'all')
+            all_records = True if fecha_d == 'all' or fecha_h == 'all' else False
+            where = f"WHERE ped.anulado=0" if all_records else f"WHERE ped.anulado=0 AND ped.fec_reg >= '{fecha_d}' and ped.fec_reg <='{fecha_h}'"
             sql = f"""
                 SELECT reng_num, RTRIM(ped.doc_num) as doc_num, RTRIM(dped.co_art) as co_art, art.art_des,
                         ped.fec_emis, ped.fec_reg, ped.descrip,
@@ -25,7 +23,7 @@ class PedidosVentasConsultas:
 						LEFT JOIN saArtUnidad as au ON dped.co_art = au.co_art AND dped.co_uni = au.co_uni 
 						LEFT JOIN saArticulo AS art ON dped.co_art = art.co_art LEFT JOIN saCliente AS c ON ped.co_cli = c.co_cli 
 						LEFT JOIN saVendedor as v ON ped.co_ven = v.co_ven
-                        LEFT JOIN saTransporte as t ON ped.co_tran = t.co_tran
+                        LEFT JOIN saTransporte as t ON ped.co_tran = t.co_tran 
     
                 {where} 
                 ORDER BY ped.fec_reg, ped.doc_num

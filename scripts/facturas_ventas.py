@@ -5,8 +5,12 @@ class FacturaVentasConsultas:
         self.conexion = conexion
         
     def data_factura_venta_con_detalle(self, **kwargs):
-        fecha_d, fecha_h, todos = kwargs.get('fecha_d'), kwargs.get('fecha_h'), kwargs.get('todos')
-        where = f"WHERE fact.anulado=0" if todos == 'all' else f"WHERE fact.anulado=0 AND fact.fec_reg >= '{fecha_d}' and fact.fec_reg <='{fecha_h}'"
+        fecha_d, fecha_h = kwargs.get('fecha_d', 'all'), kwargs.get('fecha_h', 'all')
+        tip_cli = kwargs.get('tip_cli', 'all')
+        condicion_tipo_cliente = "c.tip_cli=c.tip_cli" if tip_cli == 'all' else f"c.tip_cli = '{tip_cli}'"
+        all_records = True if fecha_d == 'all' or fecha_h == 'all' else False
+        # La funcion integrada CAST permite convertir fechas sin minutos y segundos
+        where = f"WHERE fact.anulado=0 AND {condicion_tipo_cliente}" if all_records else f"WHERE fact.anulado=0 AND CAST(fact.fec_emis AS DATE) >= '{fecha_d}' and CAST(fact.fec_emis AS DATE) <='{fecha_h}' AND {condicion_tipo_cliente}"
         sql_mov = f"""
             SELECT reng_num, RTRIM(fact.doc_num) as doc_num, 
                     RTRIM(dfact.co_art) as co_art, art.art_des,

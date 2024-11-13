@@ -13,19 +13,19 @@ class FondoGarantia:
         self.datos_profit = DatosProfit(self.conexion)
         self.ventas = FacturaVentasConsultas(conexion)
         
-    def movimientos_fondo_garantia(self, anio, mes):
+    def movimientos_fondo_garantia(self, **kwargs):
         fondo_garantia = DataFrame(columns=['co_cli', 'co_art', 'doc_num', 'fec_emis', 'co_uni', 'total_art', 'valor', 'total_fondo'])
         articulos_unidad = self.datos_profit.unidades()
         set_unidades_manejan_fondo = set(articulos_unidad[articulos_unidad['campo1'] == 'FG']['co_art'])  #  FG = Fondo de Garantia
         tabla_fondo_garantia = read_excel(path_file_fondo_garantia, dtype={'co_cli':'object'}, parse_dates=['fec_emis'])
         set_clientes_fondo = set(tabla_fondo_garantia['co_cli'])
-        movimientos_nota_entrega = self.notas_entrega.data_notas_entrega_con_detalle(anio=anio, mes=mes)[['co_cli', 'co_art', 'doc_num', 'fec_emis', 'co_uni', 'total_art']]
+        movimientos_nota_entrega = self.notas_entrega.data_notas_entrega_con_detalle(**kwargs)[['co_cli', 'co_art', 'doc_num', 'fec_emis', 'co_uni', 'total_art']]
         movimientos_nota_entrega = movimientos_nota_entrega[(movimientos_nota_entrega['co_cli'].isin(set_clientes_fondo)) & (movimientos_nota_entrega['co_uni'].isin(set_unidades_manejan_fondo))]
         movimientos_nota_entrega['fec_emis'] = movimientos_nota_entrega['fec_emis'].dt.normalize()
         if len(movimientos_nota_entrega) > 0 and len(tabla_fondo_garantia) > 0 :
             fondo_garantia_ne = merge_asof(movimientos_nota_entrega, tabla_fondo_garantia, on='fec_emis', by='co_cli')  # Combinar por aproximación
             fondo_garantia_ne['total_fondo'] = fondo_garantia_ne['total_art'] * fondo_garantia_ne['valor']
-        ventas = self.ventas.data_factura_venta_con_detalle(anio=anio, mes=mes)[['co_cli', 'co_art', 'doc_num', 'fec_emis', 'tip_cli', 'co_uni', 'total_art']]
+        ventas = self.ventas.data_factura_venta_con_detalle(**kwargs)[['co_cli', 'co_art', 'doc_num', 'fec_emis', 'tip_cli', 'co_uni', 'total_art']]
         ventas_ruteros = ventas[ventas['tip_cli'] == 'R'].copy()
         ventas_ruteros['fec_emis'] = ventas_ruteros['fec_emis'].dt.normalize()
         ventas_ruteros = ventas_ruteros[(ventas_ruteros['co_cli'].isin(set_clientes_fondo)) & (ventas_ruteros['co_uni'].isin(set_unidades_manejan_fondo))]
