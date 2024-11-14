@@ -23,23 +23,34 @@ class Ajustes:
             ORDER BY d.fec_emis, d.nro_doc
             """
         df = get_read_sql(sql, self.conexion)
-        #if len(df) > 0:
-        #    df['fec_emis'] = df['fec_emis'].dt.date
         return df
     
-    def ganancias_aplicadas(self):
+    def ganancias_aplicadas(self, **kwargs):
+        fecha_d, fecha_h = kwargs.get('fecha_d', 'all'), kwargs.get('fecha_h', 'all')
+        all_records = True if fecha_d == 'all' or fecha_h == 'all' else False
+        where = f"WHERE RTRIM(c.tip_cli) = 'R' AND RTRIM(d.co_tipo_doc) = 'AJNM' AND RTRIM(d.co_cta_ingr_egr) = 'APS'" if all_records else f"WHERE RTRIM(c.tip_cli) = 'R' AND RTRIM(d.co_tipo_doc) = 'AJNM' AND RTRIM(d.co_cta_ingr_egr) = 'APS' AND CAST(d.fec_emis AS DATE) >= '{fecha_d}' and CAST(d.fec_emis AS DATE) <='{fecha_h}'"
         sql = f"""
-            SELECT RTRIM(d.co_cli) as co_cli, RTRIM(d.nro_doc) as nro_doc, d.fec_emis, total_neto, RTRIM(d.nro_orig) as nro_orig, RTRIM(d.co_tipo_doc) as co_tipo_doc 
+            SELECT RTRIM(d.co_cli) as co_cli, RTRIM(d.nro_doc) as nro_doc, d.fec_emis, d.total_neto, RTRIM(d.nro_orig) as nro_orig, RTRIM(d.co_tipo_doc) as co_tipo_doc 
             FROM saDocumentoVenta as d  LEFT JOIN saCliente AS c ON d.co_cli = c.co_cli 
-            WHERE RTRIM(c.tip_cli) = 'R' AND RTRIM(d.co_tipo_doc) = 'AJNM' AND RTRIM(d.co_cta_ingr_egr) = 'APS'
+            {where}
             """
         df = get_read_sql(sql, self.conexion)
-        #if len(df) > 0:
-        #    df['fec_emis'] = df['fec_emis'].dt.date
+        return df
+    
+    def saldo_anterior_ganancias_aplicadas(self, **kwargs):
+        fecha_d = kwargs.get('fecha_d')
+        where = f"WHERE RTRIM(c.tip_cli) = 'R' AND RTRIM(d.co_tipo_doc) = 'AJNM' AND RTRIM(d.co_cta_ingr_egr) = 'APS' AND CAST(d.fec_emis AS DATE) < '{fecha_d}'"
+        sql = f"""
+            SELECT CAST('{fecha_d}' AS DATE) AS fecha_anterior_a, RTRIM(d.co_cli) as co_cli, sum(d.total_neto) as total_neto 
+            FROM saDocumentoVenta as d  LEFT JOIN saCliente AS c ON d.co_cli = c.co_cli 
+            {where}
+            GROUP BY d.co_cli
+            """
+        df = get_read_sql(sql, self.conexion)
         return df
     
     def saldo_anterior_ajustes(self, **kwargs):
-        fecha_d, tip_cli = kwargs.get('fecha_d') , kwargs.get('tip_cli', 'all')
+        fecha_d, tip_cli = kwargs.get('fecha_d'), kwargs.get('tip_cli', 'all')
         tip_cli = kwargs.get('tip_cli', 'all')
         condicion_tipo_cliente = "c.tip_cli=c.tip_cli" if tip_cli == 'all' else f"c.tip_cli = '{tip_cli}'"
         where = f"WHERE doc.anulado=0 AND RTRIM(doc.co_tipo_doc) <> 'FACT' AND CAST(doc.fec_emis AS DATE) < '{fecha_d}' AND {condicion_tipo_cliente}"
