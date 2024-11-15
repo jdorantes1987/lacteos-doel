@@ -41,7 +41,7 @@ class Ajustes:
         fecha_d = kwargs.get('fecha_d')
         where = f"WHERE RTRIM(c.tip_cli) = 'R' AND RTRIM(d.co_tipo_doc) = 'AJNM' AND RTRIM(d.co_cta_ingr_egr) = 'APS' AND CAST(d.fec_emis AS DATE) < '{fecha_d}'"
         sql = f"""
-            SELECT CAST('{fecha_d}' AS DATE) AS fecha_anterior_a, RTRIM(d.co_cli) as co_cli, sum(d.total_neto) as total_neto 
+            SELECT CAST('{fecha_d}' AS datetime) AS fecha_anterior_a, RTRIM(d.co_cli) as co_cli, sum(d.total_neto) as sa_gan_aplicadas 
             FROM saDocumentoVenta as d  LEFT JOIN saCliente AS c ON d.co_cli = c.co_cli 
             {where}
             GROUP BY d.co_cli
@@ -53,12 +53,15 @@ class Ajustes:
         fecha_d, tip_cli = kwargs.get('fecha_d'), kwargs.get('tip_cli', 'all')
         tip_cli = kwargs.get('tip_cli', 'all')
         condicion_tipo_cliente = "c.tip_cli=c.tip_cli" if tip_cli == 'all' else f"c.tip_cli = '{tip_cli}'"
-        where = f"WHERE doc.anulado=0 AND RTRIM(doc.co_tipo_doc) <> 'FACT' AND CAST(doc.fec_emis AS DATE) < '{fecha_d}' AND {condicion_tipo_cliente}"
+        where = f"WHERE doc.anulado = 0 AND doc.co_cta_ingr_egr IS NULL AND RTRIM(doc.co_tipo_doc) <> 'FACT' AND CAST(doc.fec_emis AS DATE) < '{fecha_d}' AND {condicion_tipo_cliente}"
         sql = f"""
-            SELECT RTRIM(doc.co_cli) AS co_cli, CAST('{fecha_d}' AS DATE) AS fecha_anterior_a, 
-                    sum(IIF(RTRIM(doc.co_tipo_doc) = 'AJNM' OR  RTRIM(doc.co_tipo_doc) = 'AJNA' OR RTRIM(doc.co_tipo_doc) = 'IVAN', -doc.total_neto, doc.total_neto)) AS total_neto 
+            SELECT RTRIM(doc.co_cli) AS co_cli, CAST('{fecha_d}' AS datetime) AS fecha_anterior_a, 
+                    sum(IIF(RTRIM(doc.co_tipo_doc) = 'AJNM' OR  RTRIM(doc.co_tipo_doc) = 'AJNA' OR RTRIM(doc.co_tipo_doc) = 'IVAN', -doc.total_neto, doc.total_neto)) AS sa_ajustes,
+                    RTRIM(doc.co_tipo_doc) AS co_tipo_doc
             FROM saDocumentoVenta as doc LEFT JOIN saCliente as c ON doc.co_cli = c.co_cli 
             {where}
-            GROUP BY doc.co_cli
-            """
-        return get_read_sql(sql, self.conexion)
+            GROUP BY doc.co_cli, co_tipo_doc
+            """    
+        df = get_read_sql(sql, self.conexion)
+        return df[~df['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])]
+        

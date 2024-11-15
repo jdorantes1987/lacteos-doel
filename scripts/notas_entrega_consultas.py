@@ -54,7 +54,7 @@ class NotasEntregaConsultas:
         fecha_d, tip_cli = kwargs.get('fecha_d') , kwargs.get('tip_cli', 'all')
         condicion_tipo_cliente = "c.tip_cli=c.tip_cli" if tip_cli == 'all' else f"c.tip_cli = '{tip_cli}'"
         sql = f"""
-            SELECT CAST('{fecha_d}' AS DATE) AS fecha_anterior_a, RTRIM(doc.co_cli) as co_cli, sum(doc.total_neto) as total_neto 
+            SELECT CAST ('{fecha_d}' AS datetime) AS fecha_anterior_a, RTRIM(doc.co_cli) as co_cli, sum(doc.total_neto) as sa_nota_e
             FROM saNotaEntregaVenta as doc LEFT JOIN saCliente as c ON doc.co_cli = c.co_cli 
             WHERE CAST(doc.fec_emis AS DATE) < '{fecha_d}' AND doc.anulado = 0  AND {condicion_tipo_cliente} 
             GROUP BY doc.co_cli

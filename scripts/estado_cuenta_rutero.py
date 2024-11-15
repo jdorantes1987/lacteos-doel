@@ -2,7 +2,7 @@ from numpy import nan
 import math
 import locale
 from datetime import datetime, timedelta
-from pandas import merge, DataFrame, date_range
+from pandas import merge, DataFrame, date_range, concat
 from scripts.consultas_generales import ConsultasGenerales
 from scripts.notas_entrega_consultas import NotasEntregaConsultas
 from scripts.facturas_ventas import FacturaVentasConsultas
@@ -12,6 +12,7 @@ from scripts.ajustes import Ajustes
 from scripts.datos_profit import DatosProfit
 from scripts.cobros import Cobros
 from scripts.fondo_garantia import FondoGarantia
+from scripts.documentos_ventas import DocumentosVentasConsultas
 
 class EstadoCuentaRutero:
     def __init__(self, conexion):
@@ -24,6 +25,7 @@ class EstadoCuentaRutero:
         self.ajustes = Ajustes(conexion)
         self.cobros = Cobros(conexion)
         self.fondo = FondoGarantia(conexion)
+        self.facturas_saldo_ant = DocumentosVentasConsultas(conexion)
           
     def resumen_pedidos(self):
         pedidos = self.pedidos.data_pedido_con_detalle()
@@ -91,24 +93,28 @@ class EstadoCuentaRutero:
         articulos_precio2 = articulos_precios[articulos_precios['co_precio'] == '02'][['co_art', 'co_precio', 'monto']]
         articulos_precio2.set_index(['co_art'], inplace=True)
         merge_facturas_art_profit =  merge(ventas_comercio_rutero_precio2, articulos, how='left', left_on=['co_art'], right_on=['co_art'], suffixes=('_pd', '_artpro'))
-        merge_facturas_art_profit['co_cli_t2'] =  merge_facturas_art_profit.apply(lambda x: x['co_tran'] if x['co_cli_t2'] is nan else x['co_cli_t2'], axis=1)
-        merge_facturas_art_profit['doc_num_t2'] =  merge_facturas_art_profit.apply(lambda x: 's/despacho' if x['doc_num_t2'] is nan else x['doc_num_t2'], axis=1)
-        merge_facturas_art_profit['prec_vta_uni'] =  merge_facturas_art_profit.apply(lambda x: articulos_precio2.loc[x['co_art'], 'monto'] if math.isnan(x['prec_vta_uni']) else x['prec_vta_uni'], axis=1)
-        merge_facturas_art_profit['base_precio_2'] =  merge_facturas_art_profit.apply(lambda x: (x['prec_vta_uni'] / x['equivalencia']) * x['total_art'] if x['es_unidad'] else x['prec_vta_uni'] * x['total_art'], axis=1)
-        merge_facturas_art_profit['iva_precio_2'] = merge_facturas_art_profit.apply(lambda x: (x['base_precio_2'] * 16 /100) if x['tipo_imp'] == '1' else 0, axis=1)
-        merge_facturas_art_profit['total_item_precio_2'] =  round(merge_facturas_art_profit['iva_precio_2'] +  merge_facturas_art_profit['base_precio_2'], ndigits=2)
-        merge_facturas_art_profit['ganancia'] =  merge_facturas_art_profit.apply(lambda x: x['monto_base_item'] - x['base_precio_2'], axis=1)
+        if len(merge_facturas_art_profit) > 0:
+            merge_facturas_art_profit['co_cli_t2'] =  merge_facturas_art_profit.apply(lambda x: x['co_tran'] if x['co_cli_t2'] is nan else x['co_cli_t2'], axis=1)
+            merge_facturas_art_profit['doc_num_t2'] =  merge_facturas_art_profit.apply(lambda x: 's/despacho' if x['doc_num_t2'] is nan else x['doc_num_t2'], axis=1)
+            merge_facturas_art_profit['prec_vta_uni'] =  merge_facturas_art_profit.apply(lambda x: articulos_precio2.loc[x['co_art'], 'monto'] if math.isnan(x['prec_vta_uni']) else x['prec_vta_uni'], axis=1)
+            merge_facturas_art_profit['base_precio_2'] =  merge_facturas_art_profit.apply(lambda x: (x['prec_vta_uni'] / x['equivalencia']) * x['total_art'] if x['es_unidad'] else x['prec_vta_uni'] * x['total_art'], axis=1)
+            merge_facturas_art_profit['iva_precio_2'] = merge_facturas_art_profit.apply(lambda x: (x['base_precio_2'] * 16 /100) if x['tipo_imp'] == '1' else 0, axis=1)
+            merge_facturas_art_profit['total_item_precio_2'] =  round(merge_facturas_art_profit['iva_precio_2'] +  merge_facturas_art_profit['base_precio_2'], ndigits=2)
+            merge_facturas_art_profit['ganancia'] =  merge_facturas_art_profit.apply(lambda x: x['monto_base_item'] - x['base_precio_2'], axis=1)
+        else:
+            merge_facturas_art_profit['total_item_precio_2'] = 0.0
         return merge_facturas_art_profit
     
-    def calculo_ganacia_por_factura_comercio_saldo_anterior(self, **kwargs):
+    def saldo_anterior_calculo_ganacia_por_factura_comercio(self, **kwargs):
         fecha_d = kwargs.get('fecha_d') 
         # converte el formato de fecha pasado por parametro a date, luego resta un día,
         # finalmente devuelve la fecha obtenida en formato fecha requerido
-        fecha_h = (datetime.strptime(fecha_d, '%Y%m%d').date() + timedelta(days=-1)).strftime('%Y%m%d')
+        fecha_h = (datetime.strptime(fecha_d, '%Y%m%d') + timedelta(days=-1)).strftime('%Y%m%d')
         facturas_comercios_ruteros = self.calculo_ganacia_por_factura_comercio(fecha_d='20010101', fecha_h=fecha_h)
         resumen_facturas_comercios = facturas_comercios_ruteros.groupby(['co_tran']).agg({'total_item_precio_2':'sum'}).reset_index()
-        resumen_facturas_comercios['fecha_anterior_a'] = datetime.strptime(fecha_d, '%Y%m%d').date()
-        return resumen_facturas_comercios[['fecha_anterior_a', 'co_tran', 'total_item_precio_2']]
+        resumen_facturas_comercios['fecha_anterior_a'] = datetime.strptime(fecha_d, '%Y%m%d')
+        resumen_facturas_comercios.rename(columns={"co_tran": "co_cli", 'total_item_precio_2':'sa_facturas_comerc'}, inplace=True)
+        return resumen_facturas_comercios[['fecha_anterior_a', 'co_cli', 'sa_facturas_comerc']]
         
     
     def resumen_movimiento_cuenta(self, **kwargs):
@@ -143,18 +149,39 @@ class EstadoCuentaRutero:
         # (- menos fondo de garantía)
         fondo_garantia = self.fondo.movimientos_fondo_garantia(**kwargs)
         resumen_fondo_garantia = fondo_garantia.groupby(['co_cli']).agg({'total_fondo':'sum'}).reset_index()
-        # ESTADO DE CUENTA
+        # MOVIMIENTOS
         merge_rutero_ne = merge(ruteros, resumen_ne, how='left', left_on=['co_cli'], right_on=['co_cli'])
         merge_ne_fact = merge(merge_rutero_ne, resumen_facturas_directas, how='left', left_on=['co_cli'], right_on=['co_cli'])
         merge_ne_fact_fcomer = merge(merge_ne_fact, resumen_facturas_comercios, how='left', left_on=['co_cli'], right_on=['co_cli'])
         merge_ne_fact_fcomer_ajus = merge(merge_ne_fact_fcomer, resumen_ajustes, how='left', left_on=['co_cli'], right_on=['co_cli'])
         merge_ne_fact_fcomer_ajus_cob = merge(merge_ne_fact_fcomer_ajus, resumen_cobros, how='left', left_on=['co_cli'], right_on=['co_cli'])
         merge_ganancia = merge(merge_ne_fact_fcomer_ajus_cob, resumen_ganancias_aplicadas, how='left', left_on=['co_cli'], right_on=['co_cli'])
-        edo_cta = merge(merge_ganancia, resumen_fondo_garantia, how='left', left_on=['co_cli'], right_on=['co_cli'])
-        edo_cta = edo_cta.infer_objects(copy=False).replace(nan, 0)  # Reemplaza todos los valores nan por cero 0
-        edo_cta['saldo'] = round(edo_cta['total_ne'] + edo_cta['total_fd'] - edo_cta['total_fcp2'] + edo_cta['total_ajust'] - edo_cta['total_cobro'] - edo_cta['total_ganancia'] - edo_cta['total_fondo'], ndigits=2)
-        edo_cta = edo_cta[edo_cta['saldo'] != 0.00]
-        return edo_cta
+        movimientos = merge(merge_ganancia, resumen_fondo_garantia, how='left', left_on=['co_cli'], right_on=['co_cli'])
+        movimientos = movimientos.infer_objects(copy=False).replace(nan, 0)  # Reemplaza todos los valores nan por cero 0
+        # SALDO ANTERIOR
+        sa_notas = self.notas_entrega.saldo_anterior_notas(**kwargs)
+        sa_facturas = self.facturas_saldo_ant.saldo_anterior_facturas_ventas(**kwargs)
+        sa_fact_comercios_ruta = self.saldo_anterior_calculo_ganacia_por_factura_comercio(**kwargs)
+        sa_ajustes = self.ajustes.saldo_anterior_ajustes(**kwargs)
+        sa_cobros = self.cobros.saldo_anterior_view_cobros_x_cliente(**kwargs)
+        sa_ganancias_aplicadas = self.ajustes.saldo_anterior_ganancias_aplicadas(**kwargs)
+        sa_fondo = self.fondo.saldo_anterior_fondo_garantia(**kwargs)
+        saldo_anterior = concat([sa_notas, sa_facturas, sa_fact_comercios_ruta, sa_ajustes, sa_cobros, sa_ganancias_aplicadas, sa_fondo], 
+                                ignore_index=True, 
+                                axis=0)
+        saldo_anterior = saldo_anterior.groupby(['fecha_anterior_a', 
+                                                 'co_cli']).agg({'sa_nota_e':'sum',
+                                                                 'sa_facturas':'sum',
+                                                                 'sa_facturas_comerc':'sum',
+                                                                 'sa_cobros':'sum',
+                                                                 'sa_gan_aplicadas':'sum',
+                                                                 'sa_ajustes':'sum',
+                                                                 'sa_fondo':'sum'}).reset_index()
+        saldo_anterior.to_excel('saldo_anterior.xlsx')                                                 
+        saldo_anterior['sa_total'] = saldo_anterior['sa_nota_e'] + saldo_anterior['sa_facturas'] - saldo_anterior['sa_facturas_comerc'] - saldo_anterior['sa_cobros'] - saldo_anterior['sa_gan_aplicadas'] + saldo_anterior['sa_ajustes'] - saldo_anterior['sa_fondo']        
+        movimientos['saldo'] = round(movimientos['total_ne'] + movimientos['total_fd'] - movimientos['total_fcp2'] + movimientos['total_ajust'] - movimientos['total_cobro'] - movimientos['total_ganancia'] - movimientos['total_fondo'], ndigits=2)
+        movimientos = movimientos[movimientos['saldo'] != 0.00]
+        return saldo_anterior
     
     def movimiento_cuenta_rutero_x_dia(self, **kwargs):
         clientes = DatosProfit(self.conexion).clientes()[['co_cli', 'cli_des']]
