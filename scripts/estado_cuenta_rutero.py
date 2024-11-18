@@ -139,11 +139,11 @@ class EstadoCuentaRutero:
         resumen_ajustes = ajutes_ruteros.groupby(['co_cli']).agg({'total_neto':'sum'}).reset_index()
         resumen_ajustes.rename(columns={'total_neto':'total_ajust'}, inplace=True)
         # (- menos cobro documentos)
-        cobros = self.cobros.view_cobros_x_cliente()
+        cobros = self.cobros.view_cobros_x_cliente(**kwargs)
         resumen_cobros = cobros.groupby(['co_cli']).agg({'cargo':'sum'}).reset_index()
         resumen_cobros.rename(columns={'cargo':'total_cobro'}, inplace=True)
         # (- menos ganancias)
-        ajustes_ganancia = self.ajustes.ganancias_aplicadas()
+        ajustes_ganancia = self.ajustes.ganancias_aplicadas(**kwargs)
         resumen_ganancias_aplicadas = ajustes_ganancia.groupby(['co_cli']).agg({'total_neto':'sum'}).reset_index()
         resumen_ganancias_aplicadas.rename(columns={'total_neto':'total_ganancia'}, inplace=True)
         # (- menos fondo de garantía)
@@ -166,22 +166,42 @@ class EstadoCuentaRutero:
         sa_cobros = self.cobros.saldo_anterior_view_cobros_x_cliente(**kwargs)
         sa_ganancias_aplicadas = self.ajustes.saldo_anterior_ganancias_aplicadas(**kwargs)
         sa_fondo = self.fondo.saldo_anterior_fondo_garantia(**kwargs)
-        saldo_anterior = concat([sa_notas, sa_facturas, sa_fact_comercios_ruta, sa_ajustes, sa_cobros, sa_ganancias_aplicadas, sa_fondo], 
-                                ignore_index=True, 
-                                axis=0)
-        saldo_anterior = saldo_anterior.groupby(['fecha_anterior_a', 
-                                                 'co_cli']).agg({'sa_nota_e':'sum',
-                                                                 'sa_facturas':'sum',
-                                                                 'sa_facturas_comerc':'sum',
-                                                                 'sa_cobros':'sum',
-                                                                 'sa_gan_aplicadas':'sum',
-                                                                 'sa_ajustes':'sum',
-                                                                 'sa_fondo':'sum'}).reset_index()
-        saldo_anterior.to_excel('saldo_anterior.xlsx')                                                 
-        saldo_anterior['sa_total'] = saldo_anterior['sa_nota_e'] + saldo_anterior['sa_facturas'] - saldo_anterior['sa_facturas_comerc'] - saldo_anterior['sa_cobros'] - saldo_anterior['sa_gan_aplicadas'] + saldo_anterior['sa_ajustes'] - saldo_anterior['sa_fondo']        
-        movimientos['saldo'] = round(movimientos['total_ne'] + movimientos['total_fd'] - movimientos['total_fcp2'] + movimientos['total_ajust'] - movimientos['total_cobro'] - movimientos['total_ganancia'] - movimientos['total_fondo'], ndigits=2)
-        movimientos = movimientos[movimientos['saldo'] != 0.00]
-        return saldo_anterior
+        df_list = [sa_notas, sa_facturas, sa_fact_comercios_ruta, sa_ajustes, sa_cobros, sa_ganancias_aplicadas, sa_fondo]
+        # Agrupa los dataframe vacios en una lista para luego determinar su cantidad y comparar con la lista de dataframes
+        lista_vacios = [df for df in df_list if df.empty]
+        # Si al menos existe un dataframe de saldos anteriores combinar
+        # por ejemplo cuando se consulta entre fechas que cubre todos los movimientos 
+        if len(lista_vacios) != len(df_list): 
+            # Prevee el caso de un dataframe o marco de datos vacío en df_list
+            saldo_anterior = concat([df for df in df_list if not df.empty],
+                                    ignore_index=True, 
+                                    axis=0)
+            # Si al menos existe un dataframe vacio combinar con saldo_anterior
+            # por ejemplo cuando se consultan fechas donde hay dataframes de saldos anteriores vacios 
+            if len(lista_vacios) > 0:
+                # Concatena todos los dataframes vacios para usar las columnas en el groupby de saldo_anterior
+                df_vacios = concat([df for df in df_list if df.empty])
+                saldo_anterior = merge(saldo_anterior, df_vacios, how="outer")
+            saldo_anterior = saldo_anterior.groupby(['fecha_anterior_a', 
+                                                    'co_cli']).agg({'sa_nota_e':'sum',
+                                                                    'sa_facturas':'sum',
+                                                                    'sa_facturas_comerc':'sum',
+                                                                    'sa_cobros':'sum',
+                                                                    'sa_gan_aplicadas':'sum',
+                                                                    'sa_ajustes':'sum',
+                                                                    'sa_fondo':'sum'}).reset_index()
+            saldo_anterior = saldo_anterior.infer_objects(copy=False).replace(nan, 0)  # Reemplaza todos los valores nan por cero 0
+            saldo_anterior['sa_total'] = saldo_anterior['sa_nota_e'] + saldo_anterior['sa_facturas'] - saldo_anterior['sa_facturas_comerc'] - saldo_anterior['sa_cobros'] - saldo_anterior['sa_gan_aplicadas'] + saldo_anterior['sa_ajustes'] - saldo_anterior['sa_fondo']
+        else:
+            saldo_anterior = DataFrame([['000', 0.0]], columns=['co_cli', 'sa_total'])
+        edo_cta = merge(saldo_anterior[['co_cli', 'sa_total']], movimientos, how='outer')
+        edo_cta = edo_cta.infer_objects(copy=False).replace(nan, 0)  # Reemplaza todos los valores nan por cero 0
+        edo_cta['saldo'] = round(edo_cta['sa_total'] + edo_cta['total_ne'] + edo_cta['total_fd'] - edo_cta['total_fcp2'] + edo_cta['total_ajust'] - edo_cta['total_cobro'] - edo_cta['total_ganancia'] - edo_cta['total_fondo'], ndigits=2)
+        edo_cta = edo_cta[edo_cta['saldo'] != 0.00]
+        return edo_cta[['co_cli', 'cli_des', 'tip_cli', 'sa_total', 
+                        'total_ne', 'total_fd', 'total_fcp2', 
+                        'total_ajust', 'total_cobro', 'total_ganancia',
+                        'total_fondo', 'saldo']]
     
     def movimiento_cuenta_rutero_x_dia(self, **kwargs):
         clientes = DatosProfit(self.conexion).clientes()[['co_cli', 'cli_des']]
