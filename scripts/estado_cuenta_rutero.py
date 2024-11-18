@@ -35,8 +35,8 @@ class EstadoCuentaRutero:
                                                 'total_item':'sum'}).reset_index()
         return agrupacion_pedido
     
-    def resumen_nota_entrega(self, anio, mes):
-        notas = self.notas_entrega.data_notas_entrega_con_detalle(anio=anio, mes=mes)
+    def resumen_nota_entrega(self, **kwargs):
+        notas = self.notas_entrega.data_notas_entrega_con_detalle(**kwargs)
         agrupacion_notas = notas.groupby(['co_cli', 'cli_des', 'co_alma', 'co_art', 'art_des', 'co_uni', 'equivalencia', 'co_precio', 'prec_vta_uni', 'prec_vta']).agg({'total_art': 'sum', 
                                                                                                                                                                         'monto_base_item': 'sum',
                                                                                                                                                                         'total_item':'sum'}).reset_index()
@@ -223,19 +223,19 @@ class EstadoCuentaRutero:
         facturas_comercios_ruteros_sum.rename(columns={'co_tran':'co_cli', 'total_item_precio_2':'total_fcp2'}, inplace=True)
         # (+- más o menos Ajustes)
         # este monto se maneja por saldo, es decir; una vez cobrado el documento desaparece del edo cta. Rutero
-        ajustes = self.ajustes.documentos_ajustes(**kwargs)
-        ajutes_ruteros = ajustes[(ajustes['tip_cli'] == 'R') & (~ajustes['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])) & (ajustes['co_cta_ingr_egr'] != 'APS')].copy()
+        ajutes_ruteros = self.ajustes.documentos_ajustes(**kwargs)
+        #ajutes_ruteros = ajustes[(ajustes['tip_cli'] == 'R') & (~ajustes['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])) & (ajustes['co_cta_ingr_egr'] != 'APS')].copy()
         ajutes_ruteros['fec_emis'] = ajutes_ruteros['fec_emis'].dt.normalize()
         ajutes_ruteros_sum = ajutes_ruteros.groupby(['co_cli', 'fec_emis']).agg({'total_neto':'sum'}).reset_index()
         ajutes_ruteros_sum.rename(columns={'total_neto':'total_ajust'}, inplace=True)
         # (- menos cobro documentos)
-        cobros = self.cobros.view_cobros_x_cliente()
-        cobros = cobros[cobros['tip_cli'] == 'R']
+        cobros = self.cobros.view_cobros_x_cliente(**kwargs)
+        #cobros = cobros[cobros['tip_cli'] == 'R']
         cobros['fecha'] = cobros['fecha'].dt.normalize()
         cobros_sum = cobros.groupby(['co_cli', 'fecha']).agg({'cargo':'sum'}).reset_index()
         cobros_sum.rename(columns={'fecha':'fec_emis', 'cargo':'total_cobro'}, inplace=True)
         # (- menos ganancias)
-        ganancias_aplicadas_sum = self.ajustes.ganancias_aplicadas()
+        ganancias_aplicadas_sum = self.ajustes.ganancias_aplicadas(**kwargs)
         if len(ganancias_aplicadas_sum) > 0 :
             ganancias_aplicadas_sum['fec_emis'] = ganancias_aplicadas_sum['fec_emis'].dt.normalize()
             ganancias_aplicadas_sum = ganancias_aplicadas_sum.groupby(['co_cli', 'fec_emis']).agg({'total_neto':'sum'}).reset_index()

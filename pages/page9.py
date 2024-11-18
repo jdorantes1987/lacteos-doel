@@ -1,9 +1,11 @@
 import os
 from io import BytesIO
 from numpy import where
-from pandas import to_datetime
+from datetime import datetime
+
 import matplotlib.pyplot as plt
 import streamlit as st
+
 from helpers.navigation import make_sidebar
 from scripts.conexion import ConexionBD
 from scripts.estado_cuenta_rutero import EstadoCuentaRutero
@@ -25,32 +27,32 @@ ajustes = Ajustes(conexion=conexion)
 cobros = Cobros(conexion=conexion)
 
 @st.cache_data
-def resumen_movimientos_cuenta_ruteros(anio, mes):
-    return estado_cuenta_rutero.resumen_movimiento_cuenta(anio=anio, mes=mes)
+def resumen_movimientos_cuenta_ruteros(**kwargs):
+    return estado_cuenta_rutero.resumen_movimiento_cuenta(**kwargs)
 
 @st.cache_data
-def movimiento_cuenta_rutero_x_dia(anio, mes):
-    return estado_cuenta_rutero.movimiento_cuenta_rutero_x_dia(anio=anio, mes=mes)
+def movimiento_cuenta_rutero_x_dia(**kwargs):
+    return estado_cuenta_rutero.movimiento_cuenta_rutero_x_dia(**kwargs)
 
 @st.cache_data
-def mov_facturas_directas(anio, mes):
-    mov_fact = estado_cuenta_rutero.resumen_facturas_rutero(anio=anio, mes=mes)
+def mov_facturas_directas(**kwargs):
+    mov_fact = estado_cuenta_rutero.resumen_facturas_rutero(**kwargs)
     if len(mov_fact) > 0 :
         mov_fact = mov_fact.sort_values(by=['fec_emis'], ascending=[False])
         mov_fact['fec_emis'] = mov_fact['fec_emis'].dt.strftime('%d-%m-%Y')
     return mov_fact
 
 @st.cache_data
-def mov_facturas_comercios(anio, mes):
-    mov_fact_comercio = estado_cuenta_rutero.calculo_ganacia_por_factura_comercio(anio=anio, mes=mes)
+def mov_facturas_comercios(**kwargs):
+    mov_fact_comercio = estado_cuenta_rutero.calculo_ganacia_por_factura_comercio(**kwargs)
     if len(mov_fact_comercio) > 0 :
         mov_fact_comercio = mov_fact_comercio.sort_values(by=['fec_emis'], ascending=[False])
         mov_fact_comercio['fec_emis'] = mov_fact_comercio['fec_emis'].dt.strftime('%d-%m-%Y')
     return mov_fact_comercio
 
 @st.cache_data
-def movimientos_nota_entrega_rutero(anio, mes):
-    notas_entrega = estado_cuenta_rutero.resumen_nota_entrega_rutero(anio=anio, mes=mes)
+def movimientos_nota_entrega_rutero(**kwargs):
+    notas_entrega = estado_cuenta_rutero.resumen_nota_entrega_rutero(**kwargs)
     if len(notas_entrega) > 0 :
         notas_entrega = notas_entrega.sort_values(by=['fec_emis'], ascending=[False])
         notas_entrega['fec_emis'] = notas_entrega['fec_emis'].dt.strftime('%d-%m-%Y')
@@ -58,24 +60,24 @@ def movimientos_nota_entrega_rutero(anio, mes):
     return notas_entrega
 
 @st.cache_data
-def movimientos_ajustes(anio, mes):
-    ajustes_rutero = ajustes.documentos_ajustes(anio=anio, mes=mes)
+def movimientos_ajustes(**kwargs):
+    ajustes_rutero = ajustes.documentos_ajustes(**kwargs)
     if len(ajustes_rutero) > 0 :
         ajustes_rutero = ajustes_rutero.sort_values(by=['fec_emis'], ascending=[False])
         ajustes_rutero['fec_emis'] = ajustes_rutero['fec_emis'].dt.strftime('%d-%m-%Y')
     return ajustes_rutero
 
 @st.cache_data
-def movimientos_ganancias_aplicadas():
-    ganancias_aplicadas = ajustes.ganancias_aplicadas()
+def movimientos_ganancias_aplicadas(**kwargs):
+    ganancias_aplicadas = ajustes.ganancias_aplicadas(**kwargs)
     if len(ganancias_aplicadas) > 0 :
         ganancias_aplicadas = ganancias_aplicadas.sort_values(by=['fec_emis'], ascending=[False])
         ganancias_aplicadas['fec_emis'] = ganancias_aplicadas['fec_emis'].dt.strftime('%d-%m-%Y')
     return ganancias_aplicadas
 
 @st.cache_data
-def movimientos_cobros():
-    cobros_ruta = cobros.view_cobros_x_cliente()
+def movimientos_cobros(**kwargs):
+    cobros_ruta = cobros.view_cobros_x_cliente(**kwargs)
     if len(cobros_ruta) > 0 :
         cobros_ruta = cobros_ruta[cobros_ruta['tip_cli'] == 'R']
         cobros_ruta = cobros_ruta.sort_values(by=['fecha'], ascending=[False])
@@ -87,15 +89,26 @@ if 'rutero_selected' not in st.session_state:
     st.session_state.rutero_selected_name = ""
     st.session_state.rutero_selected_saldo = 0.0
 
-mov_ruta = resumen_movimientos_cuenta_ruteros(anio='all', mes='all')[['co_cli', 'cli_des', 'saldo']]
 st.header("Cuenta de Facturación")
 
-col1, col2 = st.columns(2) 
+col1, col2 = st.columns(2, gap="small")
 with col1:
+    #Fecha actual
+    now = datetime.now()
+    mes, year = now.month, now.year
+    current_fecha_ini = datetime(year, mes, 1, 0, 00, 00, 00000)
+    fecha_ini = st.date_input("fecha inicial", value=current_fecha_ini).strftime('%Y%m%d') # Convierte la fecha a YYYYMMDD
+with col2:
+    fecha_fin = st.date_input("fecha final").strftime('%Y%m%d') # Convierte la fecha a YYYYMMDD
+
+mov_ruta = resumen_movimientos_cuenta_ruteros(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)[['co_cli', 'cli_des', 'saldo']]
+col, col02 = st.columns(2) 
+with col:
     st.metric(
                 label ='Total saldos a la fecha', 
                 value='{:,.2f}'.format(mov_ruta['saldo'].sum())
             )
+
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Resumen", "Movimientos", "Notas de entrega", "Facturas directas", "Factura comercios", "Gcias. aplicadas", "Ajustes", "Cobros"])
 with tab1:
@@ -144,7 +157,7 @@ if len(selected_rows) > 0 :
     with tab2:
         st.markdown('''
         :blue[Detalle del movimiento de la cuenta de facturación].''')
-        movimiento_x_dia = movimiento_cuenta_rutero_x_dia(anio='all', mes='all')
+        movimiento_x_dia = movimiento_cuenta_rutero_x_dia(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
         col3, col4, col5 = st.columns((0.5, 3, 1))
         with col3:
             st.subheader(st.session_state.rutero_selected)
@@ -234,7 +247,7 @@ if len(selected_rows) > 0 :
     with tab3:
         st.markdown('''
         :blue[Movimientos notas de entrega por rutero].''')
-        movimientos_ne = movimientos_nota_entrega_rutero(anio='all', mes='all')
+        movimientos_ne = movimientos_nota_entrega_rutero(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
         movimientos_ne = movimientos_ne[movimientos_ne['co_cli'] == st.session_state.rutero_selected]
         movimientos_ne = movimientos_ne.style.format({'total_ne': '{:,.2f}'}, precision=2)
         st.dataframe(movimientos_ne,
@@ -260,7 +273,7 @@ if len(selected_rows) > 0 :
     with tab4:
         st.markdown('''
         :blue[Facturas emitidas a ruteros].''')
-        mov_facturas = mov_facturas_directas(anio='all', mes='all')[['co_cli', 'cli_des', 'doc_num', 'fec_emis', 'total_item']]
+        mov_facturas = mov_facturas_directas(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)[['co_cli', 'cli_des', 'doc_num', 'fec_emis', 'total_item']]
         mov_facturas = mov_facturas[mov_facturas['co_cli'] == st.session_state.rutero_selected]
         mov_facturas = mov_facturas.style.format({'total_item': '{:,.2f}'}, precision=2)
         st.dataframe(mov_facturas,
@@ -286,7 +299,7 @@ if len(selected_rows) > 0 :
     with tab5:
         st.markdown('''
         :blue[Facturas comercios aplicadas a rutero].''')
-        facturas_comercios_ruteros = mov_facturas_comercios(anio='all', mes='all')
+        facturas_comercios_ruteros = mov_facturas_comercios(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
         facturas_comercios_ruteros = facturas_comercios_ruteros.groupby(['co_cli_t1', 'co_tran', 'fec_emis', 'cli_des', 'doc_num_t1'], sort=False).agg({'total_item_precio_2':'sum'}).reset_index()
         facturas_comercios_ruteros.rename(columns={'co_tran':'ruta', 'co_cli_t1':'co_cli', 'total_item_precio_2':'total_fact.'}, inplace=True)
         facturas_comercios_ruteros = facturas_comercios_ruteros[facturas_comercios_ruteros['ruta'] == st.session_state.rutero_selected]
@@ -314,7 +327,7 @@ if len(selected_rows) > 0 :
     with tab6:
         st.markdown('''
         :blue[Ganancias aplicadas sobre facturas de comercios precio dos].''')
-        ganancias_aplicadas = movimientos_ganancias_aplicadas()[['co_cli', 'co_tipo_doc', 'fec_emis', 'nro_doc', 'nro_orig', 'total_neto']]
+        ganancias_aplicadas = movimientos_ganancias_aplicadas(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)[['co_cli', 'co_tipo_doc', 'fec_emis', 'nro_doc', 'nro_orig', 'total_neto']]
         ganancias_aplicadas = ganancias_aplicadas[ganancias_aplicadas['co_cli'] == st.session_state.rutero_selected]
         st.metric(
                 label ='Total ganancias aplicadas', 
@@ -348,7 +361,7 @@ if len(selected_rows) > 0 :
     with tab7:
         st.markdown('''
         :blue[Ajustes aplicados al rutero].''')
-        ajustes_rutero = movimientos_ajustes(anio='all', mes='all')
+        ajustes_rutero = movimientos_ajustes(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
         ajustes_rutero = ajustes_rutero[(ajustes_rutero['tip_cli'] == 'R') & (~ajustes_rutero['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])) & (ajustes_rutero['co_cta_ingr_egr'] != 'APS')].copy()
         ajustes_rutero = ajustes_rutero.groupby(['co_tipo_doc', 'co_cli', 'cli_des', 'doc_num', 'fec_emis']).agg({'total_neto':'sum'}).reset_index()
         ajustes_rutero.rename(columns={'total_neto':'total_ajust'}, inplace=True)
@@ -381,7 +394,7 @@ if len(selected_rows) > 0 :
     with tab8:
         st.markdown('''
         :blue[Cobros realizados a rutero].''')
-        cobros_rutero = movimientos_cobros()
+        cobros_rutero = movimientos_cobros(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
         cobros_rutero = cobros_rutero[cobros_rutero['tip_cli'] == 'R']
         cobros_rutero = cobros_rutero.groupby(['co_cli', 'cli_des', 'co_tipo_doc', 'cob_num', 'fecha', 'nro_doc'], sort=False).agg({'cargo':'sum'}).reset_index()
         cobros_rutero.rename(columns={'fecha':'fec_emis', 'cargo':'total_cobro'}, inplace=True)
