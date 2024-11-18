@@ -1,6 +1,5 @@
 import streamlit as st
 from time import sleep
-import base64
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 from streamlit.source_util import get_pages
 from user.usuarios_roles import ClsUsuariosRoles
@@ -73,6 +72,7 @@ def _extracted_from_make_sidebar():
                                   on_change=al_cambiar_empresa)
 
     if st.button("Cerrar sesión"):
+        st.cache_data.clear()
         logout()
 
 def al_cambiar_empresa():
