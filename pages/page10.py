@@ -25,9 +25,9 @@ conexion = ConexionBD(base_de_datos=empresa)
 estado_cuenta_rutero = EstadoCuentaRutero(conexion=conexion)
 
 @st.cache_data
-def data_ganacia_x_facturas(anio, mes):
-    ganancias_aplicadas = set(Ajustes(conexion).ganancias_aplicadas()['nro_orig'])
-    ganancias_hist = estado_cuenta_rutero.calculo_ganacia_por_factura_comercio_historica(anio=anio, mes=mes)
+def data_ganacia_x_facturas(**kwargs):
+    ganancias_aplicadas = set(Ajustes(conexion).ganancias_aplicadas(**kwargs)['nro_orig'])
+    ganancias_hist = estado_cuenta_rutero.calculo_ganacia_por_factura_comercio_historica(**kwargs)
     ganancias_hist = ganancias_hist[~ganancias_hist['doc_num'].isin(ganancias_aplicadas)]
     ganancias_hist['fec_emis'] = ganancias_hist['fec_emis'].dt.normalize()
     group_ganancias_hist = ganancias_hist.groupby(['co_tran', 'co_cli', 'cli_des', 'doc_num', 'doc_num_dev', 'fec_emis']).agg({'ganancia':'sum'}).reset_index()
@@ -35,7 +35,7 @@ def data_ganacia_x_facturas(anio, mes):
 
 st.header("Ganancias por aplicar a Ruteros")
 st.caption("""Módulo para aplicar ganancia a Ruteros una vez realizado el :orange[cobro total] de cada factura de comercios.""")
-data_ganancia_x_factura = data_ganacia_x_facturas(anio='all', mes='all')[['co_tran', 'co_cli', 'cli_des', 'doc_num', 'fec_emis', 'doc_num_dev', 'ganancia']]
+data_ganancia_x_factura = data_ganacia_x_facturas()[['co_tran', 'co_cli', 'cli_des', 'doc_num', 'fec_emis', 'doc_num_dev', 'ganancia']]
 data_ganancia_x_factura.insert(0, "sel", False)
 cmap = plt.colormaps['summer']
 #resumen_movimientos.style.format({"saldo": "${:,.2f}"})

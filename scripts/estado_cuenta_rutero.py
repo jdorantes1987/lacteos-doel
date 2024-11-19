@@ -224,7 +224,7 @@ class EstadoCuentaRutero:
         # (+- más o menos Ajustes)
         # este monto se maneja por saldo, es decir; una vez cobrado el documento desaparece del edo cta. Rutero
         ajutes_ruteros = self.ajustes.documentos_ajustes(**kwargs)
-        #ajutes_ruteros = ajustes[(ajustes['tip_cli'] == 'R') & (~ajustes['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])) & (ajustes['co_cta_ingr_egr'] != 'APS')].copy()
+        ajutes_ruteros = ajutes_ruteros[(ajutes_ruteros['tip_cli'] == 'R') & (~ajutes_ruteros['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])) & (ajutes_ruteros['co_cta_ingr_egr'] != 'APS')].copy()
         ajutes_ruteros['fec_emis'] = ajutes_ruteros['fec_emis'].dt.normalize()
         ajutes_ruteros_sum = ajutes_ruteros.groupby(['co_cli', 'fec_emis']).agg({'total_neto':'sum'}).reset_index()
         ajutes_ruteros_sum.rename(columns={'total_neto':'total_ajust'}, inplace=True)

@@ -101,7 +101,7 @@ with col1:
 with col2:
     fecha_fin = st.date_input("fecha final").strftime('%Y%m%d') # Convierte la fecha a YYYYMMDD
 
-mov_ruta = resumen_movimientos_cuenta_ruteros(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)[['co_cli', 'cli_des', 'saldo']]
+mov_ruta = resumen_movimientos_cuenta_ruteros(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)[['co_cli', 'cli_des', 'sa_total', 'total_ne', 'total_fd', 'total_fcp2', 'total_ajust', 'total_cobro', 'total_ganancia', 'total_fondo', 'saldo']]
 col, col02 = st.columns(2) 
 with col:
     st.metric(
@@ -119,7 +119,7 @@ with tab1:
     resumen_movimientos.insert(0, "sel", False)
     cmap = plt.colormaps['summer']
     #resumen_movimientos.style.format({"saldo": "${:,.2f}"})
-    df_style = resumen_movimientos.style.format({'saldo': '{:,.2f}'},precision=2).background_gradient(cmap=cmap, subset=['saldo'], axis=None)
+    df_style = resumen_movimientos.style.format({'saldo': '{:,.2f}', 'sa_total': '{:,.2f}'},precision=2).background_gradient(cmap=cmap, subset=['saldo', 'sa_total'], axis=None)
     editor_resumen_mov = st.data_editor(df_style,
                                         column_config={ 
                                                         "co_cli": st.column_config.TextColumn(
@@ -128,10 +128,48 @@ with tab1:
                                                         ),
                                                         "cli_des": st.column_config.TextColumn(
                                                         "nombre",
-                                                        width='large',
+                                                        width='medium',
+                                                        ),
+                                                        "sa_total": st.column_config.NumberColumn(
+                                                        "s. anterior",
+                                                        width='small',
+                                                        ),
+                                                        "total_ne": st.column_config.NumberColumn(
+                                                        "notas e.",
+                                                        width='small',
+                                                        help='Despachos realizados a la ruta.'
+                                                        ),
+                                                        "total_fd": st.column_config.NumberColumn(
+                                                        "f. directa",
+                                                        width='small',
+                                                        help='Facturación directa de la ruta.'
+                                                        ),
+                                                        "total_fcp2": st.column_config.NumberColumn(
+                                                        "f. comercios",
+                                                        width='small',
+                                                        help='Facturación aplicada a la ruta.'
+                                                        ),
+                                                        "total_ajust": st.column_config.NumberColumn(
+                                                        "ajustes",
+                                                        width='small',
+                                                        help='Documentos de ajustes positivos manuales aplicados al saldo de la ruta.'
+                                                        ),
+                                                        "total_cobro": st.column_config.NumberColumn(
+                                                        "cobros",
+                                                        width='small',
+                                                        ),
+                                                        "total_ganancia": st.column_config.NumberColumn(
+                                                        "ganacia a.",
+                                                        width='small',
+                                                        help='Ganacia aplicada sobre la facturación a comercios (precio 2)'
+                                                        ),
+                                                        "total_fondo": st.column_config.NumberColumn(
+                                                        "fondo g.",
+                                                        width='small',
+                                                        help='Fondo de garantía de la ruta.'
                                                         )},
                                         use_container_width=False,
-                                        disabled=["co_cli", "cli_des", "saldo"],
+                                        disabled=['co_cli', 'cli_des', 'sa_total', 'total_ne', 'total_fd', 'total_fcp2', 'total_ajust', 'total_cobro', 'total_ganancia', 'total_fondo', 'saldo'],
                                         hide_index=True)
     selected_ruteros = list(where(editor_resumen_mov.sel)[0])
     selected_rows = resumen_movimientos[editor_resumen_mov.sel]
@@ -249,6 +287,9 @@ if len(selected_rows) > 0 :
         :blue[Movimientos notas de entrega por rutero].''')
         movimientos_ne = movimientos_nota_entrega_rutero(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
         movimientos_ne = movimientos_ne[movimientos_ne['co_cli'] == st.session_state.rutero_selected]
+        st.metric(
+                label ='Total notas de entrega', 
+                value='{:,.2f}'.format(movimientos_ne['total_ne'].sum()))
         movimientos_ne = movimientos_ne.style.format({'total_ne': '{:,.2f}'}, precision=2)
         st.dataframe(movimientos_ne,
                     column_config={
@@ -262,7 +303,7 @@ if len(selected_rows) > 0 :
                                     ),
                                     "doc_num": st.column_config.TextColumn(
                                     "número doc.",
-                                    width='small',
+                                    width='medium',
                                     ),
                                     "fec_emis": st.column_config.TextColumn(
                                     "fecha",
@@ -275,6 +316,9 @@ if len(selected_rows) > 0 :
         :blue[Facturas emitidas a ruteros].''')
         mov_facturas = mov_facturas_directas(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)[['co_cli', 'cli_des', 'doc_num', 'fec_emis', 'total_item']]
         mov_facturas = mov_facturas[mov_facturas['co_cli'] == st.session_state.rutero_selected]
+        st.metric(
+                label ='Total facturación directa.', 
+                value='{:,.2f}'.format(mov_facturas['total_item'].sum()))
         mov_facturas = mov_facturas.style.format({'total_item': '{:,.2f}'}, precision=2)
         st.dataframe(mov_facturas,
                     column_config={
@@ -303,6 +347,9 @@ if len(selected_rows) > 0 :
         facturas_comercios_ruteros = facturas_comercios_ruteros.groupby(['co_cli_t1', 'co_tran', 'fec_emis', 'cli_des', 'doc_num_t1'], sort=False).agg({'total_item_precio_2':'sum'}).reset_index()
         facturas_comercios_ruteros.rename(columns={'co_tran':'ruta', 'co_cli_t1':'co_cli', 'total_item_precio_2':'total_fact.'}, inplace=True)
         facturas_comercios_ruteros = facturas_comercios_ruteros[facturas_comercios_ruteros['ruta'] == st.session_state.rutero_selected]
+        st.metric(
+                label ='Total facturación comercios.', 
+                value='{:,.2f}'.format(facturas_comercios_ruteros['total_fact.'].sum()))
         facturas_comercios_ruteros = facturas_comercios_ruteros.style.format({'total_fact.': '{:,.2f}'}, precision=2)
         st.dataframe(facturas_comercios_ruteros,
                     column_config={
@@ -366,6 +413,10 @@ if len(selected_rows) > 0 :
         ajustes_rutero = ajustes_rutero.groupby(['co_tipo_doc', 'co_cli', 'cli_des', 'doc_num', 'fec_emis']).agg({'total_neto':'sum'}).reset_index()
         ajustes_rutero.rename(columns={'total_neto':'total_ajust'}, inplace=True)
         ajustes_rutero = ajustes_rutero[ajustes_rutero['co_cli'] == st.session_state.rutero_selected]
+        st.metric(
+                label ='Total ajustes', 
+                value='{:,.2f}'.format(ajustes_rutero['total_ajust'].sum())
+            )
         ajustes_rutero = ajustes_rutero.style.format({'total_ajust': '{:,.2f}'}, precision=2)
         st.dataframe(ajustes_rutero,
                     column_config={
@@ -379,7 +430,7 @@ if len(selected_rows) > 0 :
                                     ),
                                     "doc_num": st.column_config.TextColumn(
                                     "número ajuste",
-                                    width='small',
+                                    width='medium',
                                     ),
                                     "co_tipo_doc": st.column_config.TextColumn(
                                     "tipo ajuste.",
@@ -420,11 +471,11 @@ if len(selected_rows) > 0 :
                                     ),
                                     "cob_num": st.column_config.TextColumn(
                                     "núm. cobro",
-                                    width='small',
+                                    width='medium',
                                     ),
                                     "nro_doc": st.column_config.TextColumn(
                                     "núm. doc",
-                                    width='small',
+                                    width='medium',
                                     ),
                                     "fec_emis": st.column_config.TextColumn(
                                     "fecha",
