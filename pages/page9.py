@@ -287,9 +287,15 @@ if len(selected_rows) > 0 :
         :blue[Movimientos notas de entrega por rutero].''')
         movimientos_ne = movimientos_nota_entrega_rutero(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
         movimientos_ne = movimientos_ne[movimientos_ne['co_cli'] == st.session_state.rutero_selected]
-        st.metric(
-                label ='Total notas de entrega', 
-                value='{:,.2f}'.format(movimientos_ne['total_ne'].sum()))
+        tb3_col1, tb3_col2 = st.columns(2) 
+        with tb3_col1:
+            st.metric(
+                    label ='Total notas de entrega', 
+                    value='{:,.2f}'.format(movimientos_ne['total_ne'].sum()))
+        with tb3_col2:    
+            st.metric(
+                    label ='Número de documentos', 
+                    value=movimientos_ne['total_ne'].count())
         movimientos_ne = movimientos_ne.style.format({'total_ne': '{:,.2f}'}, precision=2)
         st.dataframe(movimientos_ne,
                     column_config={
