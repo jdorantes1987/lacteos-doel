@@ -355,13 +355,19 @@ if len(selected_rows) > 0 :
     with tab5:
         st.markdown('''
         :blue[Facturas comercios aplicadas a rutero].''')
+        tb5_col1, tb5_col2 = st.columns(2)
         facturas_comercios_ruteros = mov_facturas_comercios(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
         facturas_comercios_ruteros = facturas_comercios_ruteros.groupby(['co_cli_t1', 'co_tran', 'fec_emis', 'cli_des', 'doc_num_t1'], sort=False).agg({'total_item_precio_2':'sum'}).reset_index()
         facturas_comercios_ruteros.rename(columns={'co_tran':'ruta', 'co_cli_t1':'co_cli', 'total_item_precio_2':'total_fact.'}, inplace=True)
         facturas_comercios_ruteros = facturas_comercios_ruteros[facturas_comercios_ruteros['ruta'] == st.session_state.rutero_selected]
-        st.metric(
-                label ='Total facturación comercios.', 
-                value='{:,.2f}'.format(facturas_comercios_ruteros['total_fact.'].sum()))
+        with tb5_col1:
+            st.metric(
+                    label ='Total facturación comercios.', 
+                    value='{:,.2f}'.format(facturas_comercios_ruteros['total_fact.'].sum()))
+        with tb5_col2:
+            st.metric(
+                    label ='Número de documentos.', 
+                    value=facturas_comercios_ruteros['total_fact.'].count())   
         facturas_comercios_ruteros = facturas_comercios_ruteros.style.format({'total_fact.': '{:,.2f}'}, precision=2)
         st.dataframe(facturas_comercios_ruteros,
                     column_config={
@@ -457,15 +463,22 @@ if len(selected_rows) > 0 :
     with tab8:
         st.markdown('''
         :blue[Cobros realizados a rutero].''')
+        tb8_col1, tb8_col2 = st.columns(2)
         cobros_rutero = movimientos_cobros(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
         cobros_rutero = cobros_rutero[cobros_rutero['tip_cli'] == 'R']
         cobros_rutero = cobros_rutero.groupby(['co_cli', 'cli_des', 'co_tipo_doc', 'cob_num', 'fecha', 'nro_doc'], sort=False).agg({'cargo':'sum'}).reset_index()
         cobros_rutero.rename(columns={'fecha':'fec_emis', 'cargo':'total_cobro'}, inplace=True)
         cobros_rutero = cobros_rutero[cobros_rutero['co_cli'] == st.session_state.rutero_selected]
-        st.metric(
+        with tb8_col1:
+            st.metric(
                     label ='Total cobros', 
                     value='{:,.2f}'.format(cobros_rutero['total_cobro'].sum())
                 )
+        with tb8_col2:
+            st.metric(
+                    label ='Número de documentos.', 
+                    value=cobros_rutero['total_cobro'].count()
+                ) 
         cobros_rutero = cobros_rutero.style.format({'total_cobro': '{:,.2f}'}, precision=2)
         st.dataframe(cobros_rutero,
                     column_config={
