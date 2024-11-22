@@ -40,23 +40,19 @@ class LibroCompraVenta:
             merge_libro_tasas['fecha_emis'] = merge_libro_tasas['fecha_emis'].dt.strftime('%d-%m-%Y')
             merge_libro_tasas['fec_comprobante'] = merge_libro_tasas['fec_comprobante'].dt.strftime('%d-%m-%Y')
             merge_libro_tasas[['base_imp_bs', 
-                            'monto_imp_bs', 
                             'ventas_exentas_bs', 
                             'monto_igtf_bs', 
-                            'monto_ret_imp_bs',
-                            'total_neto_bs']] = merge_libro_tasas.apply(lambda x: x[['base_imp', 
-                                                                                        'monto_imp', 
+                            'monto_ret_imp_bs']] = merge_libro_tasas.apply(lambda x: x[['base_imp', 
                                                                                         'ventas_exentas', 
                                                                                         'monto_igtf', 
-                                                                                        'monto_ret_imp',
-                                                                                        'total_neto']] * x['venta_ask2'],
+                                                                                        'monto_ret_imp']] * x['venta_ask2'],
                                                                         axis=1)
             merge_libro_tasas['base_imp_bs'] = round(merge_libro_tasas['base_imp_bs'], ndigits=2)
-            merge_libro_tasas['monto_imp_bs'] = round(merge_libro_tasas['monto_imp_bs'], ndigits=2)
+            merge_libro_tasas['monto_imp_bs'] = round(merge_libro_tasas.apply(lambda x: (x['base_imp_bs'] * x['tasa']) / 100, axis=1), ndigits=2)
             merge_libro_tasas['ventas_exentas_bs'] = round(merge_libro_tasas['ventas_exentas_bs'], ndigits=2)
             merge_libro_tasas['monto_igtf_bs'] = round(merge_libro_tasas['monto_igtf_bs'], ndigits=2)
             merge_libro_tasas['monto_ret_imp_bs'] = round(merge_libro_tasas['monto_ret_imp_bs'], ndigits=2)
-            merge_libro_tasas['total_neto_bs'] = round(merge_libro_tasas['total_neto_bs'], ndigits=2)
+            merge_libro_tasas['total_neto_bs'] = round(merge_libro_tasas['base_imp_bs'] + merge_libro_tasas['monto_imp_bs'] + merge_libro_tasas['ventas_exentas_bs'] , ndigits=2)
             return merge_libro_tasas[['tipo_doc',
                                     'co_cli',
                                     'fecha_emis',

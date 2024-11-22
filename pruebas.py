@@ -21,6 +21,7 @@ from scripts.compras import ComprasConsultas
 from scripts.cobros import Cobros
 from scripts.devoluciones_consultas import DevolucionesConsultas
 from scripts.fondo_garantia import FondoGarantia
+from scripts.documentos_ventas import DocumentosVentasConsultas
 
 
 
@@ -30,10 +31,7 @@ conexion = ConexionBD(base_de_datos='LDOEL_A')
 #dev = ConsultasGenerales(conexion)
 #print(dev.get_last_number_devol())
 
-# fact = PedidosVentasConsultas(conexion)
-# fact.data_pedido_con_detalle(anio='all', mes='all').to_excel('data_pedido_con_detalle.xlsx')
-
-#NotasEntregaConsultas(conexion).data_notas_entrega_con_detalle(anio='all', mes='all').to_excel('data_notas_entrega_con_detalle.xlsx')
+#NotasEntregaConsultas(conexion).data_notas_entrega_con_detalle(tip_cli='R', fecha_d='20241101', fecha_h='20241113').to_excel('data_notas_entrega_con_detalle.xlsx')
 
 # print(ConsultasGenerales(conexion).resumen_inventario_x_articulo())
 # EstadoCuentaRutero(conexion).datos_ganacia_por_factura_a_comercios(anio='all', mes='all').to_excel('datos_ganacia_por_factura_a_comercios.xlsx')
@@ -49,20 +47,24 @@ conexion = ConexionBD(base_de_datos='LDOEL_A')
 # print(Clientes(conexion).clientes_por_sinc_doel())
 #print(CXC(conexion).view_cxc())
 #print(LibroCompraVenta(conexion).libro_compras(fecha_d='20240901', fecha_h='20240904'))
-Inventario(conexion).resumen_mov_inventario_filtrado(fecha_d='20241001', fecha_h='20241031').to_excel('resumen_mov_inventario_filtrado.xlsx')
+#Inventario(conexion).resumen_mov_inventario_filtrado(fecha_d='20241001', fecha_h='20241031').to_excel('resumen_mov_inventario_filtrado.xlsx')
 #print(Inventario(conexion).resumen_inventario_x_articulo_sin_facturas_almacen_principal())
-#EstadoCuentaRutero(conexion).calculo_ganacia_por_factura_comercio(anio='all', mes='all').to_excel('calculo_ganacia_por_factura_comercio.xlsx')
+#EstadoCuentaRutero(conexion).calculo_ganacia_por_factura_comercio(fecha_d='20241116', fecha_h='20241130').to_excel('calculo_ganacia_por_factura_comercio.xlsx')
 #EstadoCuentaRutero(conexion).resumen_facturas_comercio_rutero(anio='all', mes='all').to_excel('resumen_facturas_comercio_rutero.xlsx')
-#FacturaVentasConsultas(conexion).data_factura_venta_sin_ruta(fecha_d='20241001', fecha_h='20241025').to_excel('data_factura_venta_sin_ruta.xlsx')
-#NotasEntregaConsultas(conexion).data_notas_entrega_con_detalle(anio='all', mes='all').to_excel('data_notas_entrega_con_detalle.xlsx')
-#NotasEntregaConsultas(conexion).ultimos_precios_notas(anio='all', mes='all').to_excel('ultimos_precios_notas.xlsx')
+#PedidosVentasConsultas(conexion).data_pedido_con_detalle(fecha_d='20241101', fecha_h='20241113').to_excel('data_pedido_con_detalle.xlsx')
+#FacturaVentasConsultas(conexion).data_factura_venta_con_detalle(fecha_d='20241101', fecha_h='20241113').to_excel('data_factura_venta_con_detalle.xlsx')
+# DocumentosVentasConsultas(conexion).saldo_anterior_facturas_ventas(tip_cli='R', fecha_d='20241101', fecha_h='20241115').to_excel('saldo_anterior_facturas_ventas.xlsx')
+#NotasEntregaConsultas(conexion).saldo_anterior_notas(tip_cli='R', fecha_d='20241101', fecha_h='20241115').to_excel('saldo_anterior_notas.xlsx')
+#NotasEntregaConsultas(conexion).ultimos_precios_notas().to_excel('ultimos_precios_notas.xlsx')
 #print(ComprasConsultas(conexion).datos_vencimientos_productos())
-#EstadoCuentaRutero(conexion).resumen_movimiento_cuenta(anio='all', mes='all').to_excel('resumen_movimiento_cuenta.xlsx')
+EstadoCuentaRutero(conexion).resumen_movimiento_cuenta(tip_cli='R', fecha_d='20241101', fecha_h='20241118').to_excel('resumen_movimiento_cuenta.xlsx')
+#EstadoCuentaRutero(conexion).movimiento_cuenta_rutero_x_dia(tip_cli='R', fecha_d='20241101', fecha_h='20241115').to_excel('movimiento_cuenta_rutero_x_dia.xlsx')
 #DevolucionesConsultas(conexion).data_devolucion_con_detalle(anio='all', mes='all').to_excel('data_devolucion_con_detalle.xlsx')
-#Devoluciones(conexion).datos_devolucion(anio='all', mes='all').to_excel('datos_devolucion.xlsx')
-#cobros = Cobros(conexion).view_cobros_x_cliente()
-#cobros.to_excel('view_cobros_x_cliente.xlsx')
-#print(Ajustes(conexion).ganancias_aplicadas())
+#Devoluciones(conexion).datos_devolucion(anio='all', mzes='all').to_excel('datos_devolucion.xlsx')
+#cobros = Cobros(conexion).saldo_anterior_view_cobros_x_cliente(tip_cli='R', fecha_d='20241116', fecha_h='20241130')
+#cobros.to_excel('saldo_anterior_view_cobros_x_cliente.xlsx')
+#Ajustes(conexion).saldo_anterior_ganancias_aplicadas(fecha_d='20241101', fecha_h='20241115').to_excel('saldo_anterior_ganancias_aplicadas.xlsx')
+#Ajustes(conexion).saldo_anterior_ajustes(tip_cli='R', fecha_d='20241116', fecha_h='20241130').to_excel('saldo_anterior_ajustes.xlsx')
 #print(str(str(int(ConsultasGenerales(conexion).get_last__nro_ajuste_negativo()) + 1).zfill(10)))
 #ControlAcceso(conexion).aut_user(user='YRODRI', pw='1234')
-#FondoGarantia(conexion).movimientos_fondo_garantia(anio='all', mes='all').to_excel('movimientos_fondo_garantia.xlsx')
+#FondoGarantia(conexion).saldo_anterior_fondo_garantia(fecha_d='20241101', fecha_h='20241115').to_excel('saldo_anterior_fondo_garantia.xlsx')
