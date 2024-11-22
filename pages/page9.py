@@ -320,11 +320,17 @@ if len(selected_rows) > 0 :
     with tab4:
         st.markdown('''
         :blue[Facturas emitidas a ruteros].''')
+        tb4_col1, tb4_col2 = st.columns(2)
         mov_facturas = mov_facturas_directas(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)[['co_cli', 'cli_des', 'doc_num', 'fec_emis', 'total_item']]
         mov_facturas = mov_facturas[mov_facturas['co_cli'] == st.session_state.rutero_selected]
-        st.metric(
-                label ='Total facturación directa.', 
-                value='{:,.2f}'.format(mov_facturas['total_item'].sum()))
+        with tb4_col1:
+            st.metric(
+                    label ='Total facturación directa.', 
+                    value='{:,.2f}'.format(mov_facturas['total_item'].sum()))
+        with tb4_col2:
+            st.metric(
+                    label ='Número de documentos.', 
+                    value=mov_facturas['total_item'].count())
         mov_facturas = mov_facturas.style.format({'total_item': '{:,.2f}'}, precision=2)
         st.dataframe(mov_facturas,
                     column_config={
