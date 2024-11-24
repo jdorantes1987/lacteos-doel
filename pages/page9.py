@@ -1,8 +1,9 @@
 import os
 from io import BytesIO
 from numpy import where
-from datetime import datetime
+from datetime import datetime, timedelta
 
+from pandas import DataFrame, concat
 import matplotlib.pyplot as plt
 import streamlit as st
 
@@ -171,12 +172,17 @@ with tab1:
                                         use_container_width=False,
                                         disabled=['co_cli', 'cli_des', 'sa_total', 'total_ne', 'total_fd', 'total_fcp2', 'total_ajust', 'total_cobro', 'total_ganancia', 'total_fondo', 'saldo'],
                                         hide_index=True)
-    selected_ruteros = list(where(editor_resumen_mov.sel)[0])
+    #selected_ruteros = list(where(editor_resumen_mov.sel)[0])
     selected_rows = resumen_movimientos[editor_resumen_mov.sel]
     if len(selected_rows) > 0 :
-         st.session_state.rutero_selected = selected_rows['co_cli'].unique()[0]
-         st.session_state.rutero_selected_name = selected_rows['cli_des'].unique()[0]
-         st.session_state.rutero_selected_saldo = selected_rows['saldo'].unique()[0]
+         st.session_state.rutero_selected = selected_rows.iloc[0,1] # Codigo ruta
+         st.session_state.rutero_selected_name = selected_rows.iloc[0,2] # Nombre
+         st.session_state.rutero_selected_saldo_anterior = selected_rows.iloc[0,3] # Saldo anterior
+         st.session_state.rutero_selected_ne = selected_rows.iloc[0,4] # Notas de entregar
+         st.session_state.rutero_selected_fd = selected_rows.iloc[0,5] # Facturas directas
+         st.session_state.rutero_selected_fcp2 = selected_rows.iloc[0,6] # Facturas Comercios
+         st.session_state.rutero_selected_cobros = selected_rows.iloc[0,8] # Cobros
+         st.session_state.rutero_selected_saldo = selected_rows.iloc[0,11] # Saldo 
     else:
         st.session_state.rutero_selected = ""
     
@@ -196,14 +202,14 @@ if len(selected_rows) > 0 :
         st.markdown('''
         :blue[Detalle del movimiento de la cuenta de facturación].''')
         movimiento_x_dia = movimiento_cuenta_rutero_x_dia(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
-        col3, col4, col5 = st.columns((0.5, 3, 1))
-        with col3:
+        tb2_col1, tb2_col2, tb2_col3 = st.columns(3)
+        with tb2_col1:
             st.subheader(st.session_state.rutero_selected)
-        with col4:
-            st.subheader(st.session_state.rutero_selected_name)  
-        with col5:   
+        with tb2_col2:
+            st.subheader(st.session_state.rutero_selected_name) 
+        with tb2_col3:   
             st.metric(
-                    label ='Saldo rutero', 
+                    label ='Saldo', 
                     value='{:,.2f}'.format(float(st.session_state.rutero_selected_saldo))
             )
             
@@ -211,6 +217,16 @@ if len(selected_rows) > 0 :
             mov_filtrados_x_rutero = movimiento_x_dia[movimiento_x_dia['co_cli'].isin(selected_rows['co_cli'])].copy() 
             mov_filtrados_x_rutero['saldo'] = mov_filtrados_x_rutero['total_ne'] + mov_filtrados_x_rutero['total_fd'] - mov_filtrados_x_rutero['total_fcp2'] + mov_filtrados_x_rutero['total_ajust'] - mov_filtrados_x_rutero['total_cobro'] - mov_filtrados_x_rutero['total_ganancia'] - mov_filtrados_x_rutero['total_fondo']
             mov_filtrados_x_rutero['fec_emis'] = mov_filtrados_x_rutero['fec_emis'].dt.strftime('%d-%m-%Y')
+            valores_anterior = []
+            valores_anterior.append(st.session_state.rutero_selected)
+            valores_anterior.append(st.session_state.rutero_selected_name + ' (S. Anterior)')
+            fecha_anterior = (datetime.strptime(fecha_ini, '%Y%m%d') + timedelta(days=-1)).strftime('%d-%m-%Y')
+            valores_anterior.append(fecha_anterior)
+            valores_anterior.append(' ')
+            valores_anterior.append(st.session_state.rutero_selected_saldo_anterior)
+            columns_saldo_anterior = ['co_cli', 'cli_des', 'fec_emis', 'fec_mid', 'saldo']
+            df_saldo_anterior = DataFrame([valores_anterior], columns=columns_saldo_anterior)
+            mov_filtrados_x_rutero = concat([df_saldo_anterior, mov_filtrados_x_rutero], axis=0, ignore_index=True)
             mov_filtrados_x_rutero['saldo final'] = mov_filtrados_x_rutero['saldo'].cumsum()
             mov_filtrados_x_rutero.drop(columns=['saldo'], inplace=True)
             resumen_movimientos_style = mov_filtrados_x_rutero.style.format({
@@ -275,6 +291,7 @@ if len(selected_rows) > 0 :
                                                     )},
                                                 use_container_width=True,
                                                 hide_index=True)
+            
             mov_filtrados_x_rutero.to_excel(buf := BytesIO())
             st.download_button(
             'Descargar',
