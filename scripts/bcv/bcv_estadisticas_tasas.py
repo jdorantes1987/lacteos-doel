@@ -69,18 +69,23 @@ def actulizar_file_tasas():
     locale.setlocale(locale.LC_ALL, 'es_ES')
     df_file_tasa = historico_tasas_bcv()
     df_file_tasa_new = get_data_usd_bcv_web_last_qt()
-    name_file_tasa_download = list(dic_year_files.values())[0][0]  # Obtiene el primer nombre de la lista de diccionario
-    df_file_tasa_filtred = df_file_tasa[df_file_tasa['archivo'] != name_file_tasa_download]
-    new_file_tasa = [df_file_tasa_new, df_file_tasa_filtred]
-    df = concat(new_file_tasa).reset_index(drop=True)
-    df['año'] = df['fecha'].dt.year
-    df['mes'] = df['fecha'].dt.month
-    df['dia'] = df['fecha'].dt.day
-    df['mes_'] = df['fecha'].dt.month_name(locale='es_ES').str[:3]
-    locale.setlocale(locale.LC_ALL, '')
-    df['var_tasas'] = df['venta_ask2'].diff(
-        periods=-1)  # Permite calcular la diferencia que existe entre el valor de la celda actual con respecto a la anterior
-    df.to_excel(path_file_tasas_bcv)
+    # Si no está vacio el dataframe obtenido de la web, no actualizar archivo histórico de tasas.
+    if not df_file_tasa_new.empty:
+        name_file_tasa_download = list(dic_year_files.values())[0][0]  # Obtiene el primer nombre de la lista de diccionario
+        df_file_tasa_filtred = df_file_tasa[df_file_tasa['archivo'] != name_file_tasa_download]
+        df_files = [df_file_tasa_new, df_file_tasa_filtred]
+        df = concat(df_files).reset_index(drop=True)
+        df['año'] = df['fecha'].dt.year
+        df['mes'] = df['fecha'].dt.month
+        df['dia'] = df['fecha'].dt.day
+        df['mes_'] = df['fecha'].dt.month_name(locale='es_ES').str[:3]
+        locale.setlocale(locale.LC_ALL, '')
+        df['var_tasas'] = df['venta_ask2'].diff(
+            periods=-1)  # Permite calcular la diferencia que existe entre el valor de la celda actual con respecto a la anterior
+        df.to_excel(path_file_tasas_bcv)
+    else:
+        print('No se puedo actualizar el archivo histórico de tasas BCV')
 
 if __name__ == '__main__':
-    print(get_data_usd_bcv_web_last_qt())
+    #print(get_data_usd_bcv_web_last_qt())
+    actulizar_file_tasas()
