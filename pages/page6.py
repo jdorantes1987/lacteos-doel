@@ -37,9 +37,9 @@ with st.expander("mostrar"):
         now = datetime.now()
         mes, year = now.month, now.year
         current_fecha_ini = datetime(year, mes, 1, 0, 00, 00, 00000)
-        fecha_ini = st.date_input("fecha inicial", value=current_fecha_ini).strftime('%Y%m%d %H:%M:%S') # Convierte la fecha a YYYYMMDD
+        fecha_ini = st.date_input("fecha inicial", value=current_fecha_ini).strftime('%Y%m%d') # Convierte la fecha a YYYYMMDD
     with col2:
-        fecha_fin = st.date_input("fecha final").strftime('%Y%m%d 23:59:59') # Convierte la fecha a YYYYMMDD
+        fecha_fin = st.date_input("fecha final").strftime('%Y%m%d') # Convierte la fecha a YYYYMMDD
 
     libro_ventas = libro_ventas(fecha_d=fecha_ini, fecha_h=fecha_fin)
     if libro_ventas is not None:
