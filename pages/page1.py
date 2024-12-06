@@ -3,8 +3,11 @@ import time
 from io import BytesIO
 import altair as alt 
 from multiprocessing import Process, Queue
-import streamlit as st
 from datetime import datetime, date
+
+import streamlit as st
+import plotly.graph_objects as go
+
 from helpers.navigation import make_sidebar
 from scripts.bcv.data import get_fecha_tasa_bcv_dia, get_monto_tasa_bcv_dia
 from scripts.bcv.data import historico_tasas_bcv, path_file_tasas_bcv
@@ -55,8 +58,7 @@ def tasa_manual(fecha, valor):
    actulizar_file_tasas_manual(fecha=fecha, valor_tasa=valor)
 
 if __name__ == '__main__':
-    date = get_fecha_tasa_bcv_dia().date()
-
+    date_t = datetime.strptime(str(get_fecha_tasa_bcv_dia().date()), '%Y-%m-%d')
     table_scorecard = """
     <div class="ui five small statistics">
       <div class="grey statistic">
@@ -67,7 +69,7 @@ if __name__ == '__main__':
         </div>
       </div>
       <div class="grey statistic">
-        <div class="value">""" +str(date)+  """
+        <div class="value">""" + date_t.strftime('%d-%m-%Y') +  """
         </div>
         <div class="grey label">
           Fecha valor tasa BCV
@@ -91,11 +93,19 @@ if __name__ == '__main__':
 
 with st.expander("Evolución tasa BCV"):
      historico_tasa = historico_tasas_bcv()
-     df = historico_tasa[historico_tasa['año'] == 2024]
-     chart = alt.Chart(df, title='Histórico').mark_line().encode(
-      x='fecha', y=alt.Y('venta_ask2', scale=alt.Scale(domain=[df['venta_ask2'].min() - 1, df['venta_ask2'].max() + 1])), strokeDash='cod_mon'
-        ).properties(width=650, height=350)     
-     st.altair_chart(chart, use_container_width=True)
+     df = historico_tasa[historico_tasa['año'] == date_t.year]
+     fig = go.Figure()
+     fig = fig.add_trace(go.Scatter(x=df["fecha"].dt.normalize(),
+                                y=df["venta_ask2"],
+                                text="Tasa",))
+     fig.update_traces(textposition="bottom right")
+     fig.update_layout(
+        title="Histórico de tasas BCV",
+        plot_bgcolor="#E6F1F6",
+     )
+     fig.update_xaxes(nticks=13)
+     st.plotly_chart(fig, 
+                    use_container_width=True)
 
 with st.expander("Histórico de tasas"):
      st.dataframe(historico_tasa[['cod_mon', 'fecha', 'compra_bid2', 'venta_ask2', 'var_tasas']],
