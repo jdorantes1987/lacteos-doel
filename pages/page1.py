@@ -8,7 +8,7 @@ from datetime import datetime, date
 from helpers.navigation import make_sidebar
 from scripts.bcv.data import get_fecha_tasa_bcv_dia, get_monto_tasa_bcv_dia
 from scripts.bcv.data import historico_tasas_bcv, path_file_tasas_bcv
-from scripts.bcv.bcv_estadisticas_tasas import actulizar_file_tasas
+from scripts.bcv.bcv_estadisticas_tasas import actulizar_file_tasas, actulizar_file_tasas_manual
 from scripts.empresa import ClsEmpresa
 
 st.set_page_config(page_title='Inicio', 
@@ -51,6 +51,8 @@ def local_css(file_name):
         with open(file_name) as f:
             st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
+def tasa_manual(fecha, valor):
+   actulizar_file_tasas_manual(fecha=fecha, valor_tasa=valor)
 
 if __name__ == '__main__':
     date = get_fecha_tasa_bcv_dia().date()
@@ -76,7 +78,16 @@ if __name__ == '__main__':
     local_css("files/style.css")
     make_sidebar()
     if not archivo_xlsx_bcv_actualizado():
-       actualizar_tasa_bcv()
+      if actualizar_tasa_bcv():
+        st.info('Tasa BCV actualizada!')
+        time.sleep(0.5)
+      else:
+        st.warning('No se pudo actualizar el archivo de histórico de tasas BCV')
+        fecha = st.date_input("fecha de la tasa", disabled=True).strftime('%Y%m%d') # Convierte la fecha a YYYYMMDD
+        valor = st.number_input('Ingrese el valor de la tasa', format="%.5f")
+        if st.button("Deseas actualizar la tasa de forma manual?",  on_click=tasa_manual, args=(fecha, valor)):
+          st.info('Tasa BCV actualizada!')
+      st.rerun()
 
 with st.expander("Evolución tasa BCV"):
      historico_tasa = historico_tasas_bcv()
