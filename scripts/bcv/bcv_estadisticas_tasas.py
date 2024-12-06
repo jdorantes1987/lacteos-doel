@@ -83,8 +83,41 @@ def actulizar_file_tasas():
         df['var_tasas'] = df['venta_ask2'].diff(
             periods=-1)  # Permite calcular la diferencia que existe entre el valor de la celda actual con respecto a la anterior
         df.to_excel(path_file_tasas_bcv)
+        return True
     else:
-        print('No se puedo actualizar el archivo histórico de tasas BCV')
+        return False
+    
+# Actualiza el archivo tasas_BCV.xlsx de forma manual
+def actulizar_file_tasas_manual(fecha, valor_tasa):
+    locale.setlocale(locale.LC_ALL, 'es_ES')
+    df_file_tasa = historico_tasas_bcv()
+    columns = ['cod_mon', 'mon_pais', 'compra_bid', 'venta_ask', 'compra_bid2', 'venta_ask2', 'fecha', 'archivo']
+    valores = []
+    valores.append('USD')
+    valores.append('E.U.A.')
+    valores.append(1)
+    valores.append(1)
+    valores.append(0)
+    valores.append(valor_tasa)
+    valores.append(fecha)
+    valores.append('Carga manual')
+    df_manual = DataFrame([valores], columns=columns)
+    df_manual['fecha'] =  to_datetime(df_manual['fecha'])
+    # Si no está vacio el dataframe obtenido de la web, no actualizar archivo histórico de tasas.
+    if not df_manual.empty:
+        new_file_tasa = [df_manual, df_file_tasa]
+        df = concat(new_file_tasa).reset_index(drop=True)
+        df['año'] = df['fecha'].dt.year
+        df['mes'] = df['fecha'].dt.month
+        df['dia'] = df['fecha'].dt.day
+        df['mes_'] = df['fecha'].dt.month_name(locale='es_ES').str[:3]
+        locale.setlocale(locale.LC_ALL, '')
+        df['var_tasas'] = df['venta_ask2'].diff(
+            periods=-1)  # Permite calcular la diferencia que existe entre el valor de la celda actual con respecto a la anterior
+        df.to_excel(path_file_tasas_bcv)
+        return True
+    else:
+        return False
 
 if __name__ == '__main__':
     #print(get_data_usd_bcv_web_last_qt())
