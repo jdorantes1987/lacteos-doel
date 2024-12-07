@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
 with st.expander("Evolución tasa BCV"):
      historico_tasa = historico_tasas_bcv()
-     df = historico_tasa[historico_tasa['año'] == date_t.year]
+     df = historico_tasa[historico_tasa['año'] == date.today().year]
      fig = go.Figure()
      fig = fig.add_trace(go.Scatter(x=df["fecha"].dt.normalize(),
                                 y=df["venta_ask2"],
