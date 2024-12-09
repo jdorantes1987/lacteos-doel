@@ -303,224 +303,230 @@ if len(selected_rows) > 0 :
         st.markdown('''
         :blue[Movimientos notas de entrega por rutero].''')
         movimientos_ne = movimientos_nota_entrega_rutero(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
-        movimientos_ne = movimientos_ne[movimientos_ne['co_cli'] == st.session_state.rutero_selected]
-        tb3_col1, tb3_col2 = st.columns(2) 
-        with tb3_col1:
-            st.metric(
-                    label ='Total notas de entrega', 
-                    value='{:,.2f}'.format(movimientos_ne['total_ne'].sum()))
-        with tb3_col2:    
-            st.metric(
-                    label ='Número de documentos', 
-                    value=movimientos_ne['total_ne'].count())
-        movimientos_ne = movimientos_ne.style.format({'total_ne': '{:,.2f}'}, precision=2)
-        st.dataframe(movimientos_ne,
-                    column_config={
-                                    "co_cli": st.column_config.TextColumn(
-                                    "rutero",
-                                        width='small',
-                                    ),
-                                    "cli_des": st.column_config.TextColumn(
-                                    "razón social",
-                                    width='large',
-                                    ),
-                                    "doc_num": st.column_config.TextColumn(
-                                    "número doc.",
-                                    width='medium',
-                                    ),
-                                    "fec_emis": st.column_config.TextColumn(
-                                    "fecha",
-                                    width='small')},
-                    use_container_width=False,
-                    hide_index=True)
+        if len(movimientos_ne) > 0:
+            movimientos_ne = movimientos_ne[movimientos_ne['co_cli'] == st.session_state.rutero_selected]
+            tb3_col1, tb3_col2 = st.columns(2) 
+            with tb3_col1:
+                st.metric(
+                        label ='Total notas de entrega', 
+                        value='{:,.2f}'.format(movimientos_ne['total_ne'].sum()))
+            with tb3_col2:    
+                st.metric(
+                        label ='Número de documentos', 
+                        value=movimientos_ne['total_ne'].count())
+            movimientos_ne = movimientos_ne.style.format({'total_ne': '{:,.2f}'}, precision=2)
+            st.dataframe(movimientos_ne,
+                        column_config={
+                                        "co_cli": st.column_config.TextColumn(
+                                        "rutero",
+                                            width='small',
+                                        ),
+                                        "cli_des": st.column_config.TextColumn(
+                                        "razón social",
+                                        width='large',
+                                        ),
+                                        "doc_num": st.column_config.TextColumn(
+                                        "número doc.",
+                                        width='medium',
+                                        ),
+                                        "fec_emis": st.column_config.TextColumn(
+                                        "fecha",
+                                        width='small')},
+                        use_container_width=False,
+                        hide_index=True)
         
     with tab4:
         st.markdown('''
         :blue[Facturas emitidas a ruteros].''')
         tb4_col1, tb4_col2 = st.columns(2)
         mov_facturas = mov_facturas_directas(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)[['co_cli', 'cli_des', 'doc_num', 'fec_emis', 'total_item']]
-        mov_facturas = mov_facturas[mov_facturas['co_cli'] == st.session_state.rutero_selected]
-        with tb4_col1:
-            st.metric(
-                    label ='Total facturación directa.', 
-                    value='{:,.2f}'.format(mov_facturas['total_item'].sum()))
-        with tb4_col2:
-            st.metric(
-                    label ='Número de documentos.', 
-                    value=mov_facturas['total_item'].count())
-        mov_facturas = mov_facturas.style.format({'total_item': '{:,.2f}'}, precision=2)
-        st.dataframe(mov_facturas,
-                    column_config={
-                                    "co_cli": st.column_config.TextColumn(
-                                    "rutero",
+        if len(mov_facturas) > 0:
+            mov_facturas = mov_facturas[mov_facturas['co_cli'] == st.session_state.rutero_selected]
+            with tb4_col1:
+                st.metric(
+                        label ='Total facturación directa.', 
+                        value='{:,.2f}'.format(mov_facturas['total_item'].sum()))
+            with tb4_col2:
+                st.metric(
+                        label ='Número de documentos.', 
+                        value=mov_facturas['total_item'].count())
+            mov_facturas = mov_facturas.style.format({'total_item': '{:,.2f}'}, precision=2)
+            st.dataframe(mov_facturas,
+                        column_config={
+                                        "co_cli": st.column_config.TextColumn(
+                                        "rutero",
+                                            width='small',
+                                        ),
+                                        "cli_des": st.column_config.TextColumn(
+                                        "razón social",
+                                        width='large',
+                                        ),
+                                        "doc_num": st.column_config.TextColumn(
+                                        "número fact.",
                                         width='small',
-                                    ),
-                                    "cli_des": st.column_config.TextColumn(
-                                    "razón social",
-                                    width='large',
-                                    ),
-                                    "doc_num": st.column_config.TextColumn(
-                                    "número fact.",
-                                    width='small',
-                                    ),
-                                    "fec_emis": st.column_config.TextColumn(
-                                    "fecha",
-                                    width='small')},
-                    use_container_width=False,
-                    hide_index=True)
+                                        ),
+                                        "fec_emis": st.column_config.TextColumn(
+                                        "fecha",
+                                        width='small')},
+                        use_container_width=False,
+                        hide_index=True)
 
     with tab5:
         st.markdown('''
         :blue[Facturas comercios aplicadas a rutero].''')
         tb5_col1, tb5_col2 = st.columns(2)
         facturas_comercios_ruteros = mov_facturas_comercios(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
-        facturas_comercios_ruteros = facturas_comercios_ruteros.groupby(['co_cli_t1', 'co_tran', 'fec_emis', 'cli_des', 'doc_num_t1'], sort=False).agg({'total_item_precio_2':'sum'}).reset_index()
-        facturas_comercios_ruteros.rename(columns={'co_tran':'ruta', 'co_cli_t1':'co_cli', 'total_item_precio_2':'total_fact.'}, inplace=True)
-        facturas_comercios_ruteros = facturas_comercios_ruteros[facturas_comercios_ruteros['ruta'] == st.session_state.rutero_selected]
-        with tb5_col1:
-            st.metric(
-                    label ='Total facturación comercios.', 
-                    value='{:,.2f}'.format(facturas_comercios_ruteros['total_fact.'].sum()))
-        with tb5_col2:
-            st.metric(
-                    label ='Número de documentos.', 
-                    value=facturas_comercios_ruteros['total_fact.'].count())   
-        facturas_comercios_ruteros = facturas_comercios_ruteros.style.format({'total_fact.': '{:,.2f}'}, precision=2)
-        st.dataframe(facturas_comercios_ruteros,
-                    column_config={
-                                    "co_cli": st.column_config.TextColumn(
-                                    "cod. cliente",
+        if len(facturas_comercios_ruteros) > 0:
+            facturas_comercios_ruteros = facturas_comercios_ruteros.groupby(['co_cli_t1', 'co_tran', 'fec_emis', 'cli_des', 'doc_num_t1'], sort=False).agg({'total_item_precio_2':'sum'}).reset_index()
+            facturas_comercios_ruteros.rename(columns={'co_tran':'ruta', 'co_cli_t1':'co_cli', 'total_item_precio_2':'total_fact.'}, inplace=True)
+            facturas_comercios_ruteros = facturas_comercios_ruteros[facturas_comercios_ruteros['ruta'] == st.session_state.rutero_selected]
+            with tb5_col1:
+                st.metric(
+                        label ='Total facturación comercios.', 
+                        value='{:,.2f}'.format(facturas_comercios_ruteros['total_fact.'].sum()))
+            with tb5_col2:
+                st.metric(
+                        label ='Número de documentos.', 
+                        value=facturas_comercios_ruteros['total_fact.'].count())   
+            facturas_comercios_ruteros = facturas_comercios_ruteros.style.format({'total_fact.': '{:,.2f}'}, precision=2)
+            st.dataframe(facturas_comercios_ruteros,
+                        column_config={
+                                        "co_cli": st.column_config.TextColumn(
+                                        "cod. cliente",
+                                            width='small',
+                                        ),
+                                        "cli_des": st.column_config.TextColumn(
+                                        "razón social",
+                                        width='large',
+                                        ),
+                                        "doc_num_t1": st.column_config.TextColumn(
+                                        "número fact.",
                                         width='small',
-                                    ),
-                                    "cli_des": st.column_config.TextColumn(
-                                    "razón social",
-                                    width='large',
-                                    ),
-                                    "doc_num_t1": st.column_config.TextColumn(
-                                    "número fact.",
-                                    width='small',
-                                    ),
-                                    "fec_emis": st.column_config.TextColumn(
-                                    "fecha",
-                                    width='small')},
-                    use_container_width=False,
-                    hide_index=True)
+                                        ),
+                                        "fec_emis": st.column_config.TextColumn(
+                                        "fecha",
+                                        width='small')},
+                        use_container_width=False,
+                        hide_index=True)
         
     with tab6:
         st.markdown('''
         :blue[Ganancias aplicadas sobre facturas de comercios precio dos].''')
         ganancias_aplicadas = movimientos_ganancias_aplicadas(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)[['co_cli', 'co_tipo_doc', 'fec_emis', 'nro_doc', 'nro_orig', 'total_neto']]
-        ganancias_aplicadas = ganancias_aplicadas[ganancias_aplicadas['co_cli'] == st.session_state.rutero_selected]
-        st.metric(
-                label ='Total ganancias aplicadas', 
-                value='{:,.2f}'.format(ganancias_aplicadas['total_neto'].sum())
-            )
-        ganancias_aplicadas = ganancias_aplicadas.style.format({'total_neto.': '{:,.2f}'}, precision=2)
-        st.dataframe(ganancias_aplicadas,
-                    column_config={
-                                    "co_cli": st.column_config.TextColumn(
-                                    "cod. cliente",
+        if len(ganancias_aplicadas) > 0:
+            ganancias_aplicadas = ganancias_aplicadas[ganancias_aplicadas['co_cli'] == st.session_state.rutero_selected]
+            st.metric(
+                    label ='Total ganancias aplicadas', 
+                    value='{:,.2f}'.format(ganancias_aplicadas['total_neto'].sum())
+                )
+            ganancias_aplicadas = ganancias_aplicadas.style.format({'total_neto.': '{:,.2f}'}, precision=2)
+            st.dataframe(ganancias_aplicadas,
+                        column_config={
+                                        "co_cli": st.column_config.TextColumn(
+                                        "cod. cliente",
+                                            width='small',
+                                        ),
+                                        "nro_doc": st.column_config.TextColumn(
+                                        "doc. ajuste",
                                         width='small',
-                                    ),
-                                    "nro_doc": st.column_config.TextColumn(
-                                    "doc. ajuste",
-                                    width='small',
-                                    ),
-                                    "nro_orig": st.column_config.TextColumn(
-                                    "número fact.",
-                                    width='small',
-                                    ),
-                                    "co_tipo_doc": st.column_config.TextColumn(
-                                    "tipo doc.",
-                                    width='small',
-                                    ),
-                                    "fec_emis": st.column_config.TextColumn(
-                                    "fecha",
-                                    width='small')},
-                    use_container_width=False,
-                    hide_index=True)  
+                                        ),
+                                        "nro_orig": st.column_config.TextColumn(
+                                        "número fact.",
+                                        width='small',
+                                        ),
+                                        "co_tipo_doc": st.column_config.TextColumn(
+                                        "tipo doc.",
+                                        width='small',
+                                        ),
+                                        "fec_emis": st.column_config.TextColumn(
+                                        "fecha",
+                                        width='small')},
+                        use_container_width=False,
+                        hide_index=True)  
         
     with tab7:
         st.markdown('''
         :blue[Ajustes aplicados al rutero].''')
         ajustes_rutero = movimientos_ajustes(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
-        ajustes_rutero = ajustes_rutero[(ajustes_rutero['tip_cli'] == 'R') & (~ajustes_rutero['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])) & (ajustes_rutero['co_cta_ingr_egr'] != 'APS')].copy()
-        ajustes_rutero = ajustes_rutero.groupby(['co_tipo_doc', 'co_cli', 'cli_des', 'doc_num', 'fec_emis']).agg({'total_neto':'sum'}).reset_index()
-        ajustes_rutero.rename(columns={'total_neto':'total_ajust'}, inplace=True)
-        ajustes_rutero = ajustes_rutero[ajustes_rutero['co_cli'] == st.session_state.rutero_selected]
-        st.metric(
-                label ='Total ajustes', 
-                value='{:,.2f}'.format(ajustes_rutero['total_ajust'].sum())
-            )
-        ajustes_rutero = ajustes_rutero.style.format({'total_ajust': '{:,.2f}'}, precision=2)
-        st.dataframe(ajustes_rutero,
-                    column_config={
-                                    "co_cli": st.column_config.TextColumn(
-                                    "ruta",
+        if len(ajustes_rutero) > 0:
+            ajustes_rutero = ajustes_rutero[(ajustes_rutero['tip_cli'] == 'R') & (~ajustes_rutero['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])) & (ajustes_rutero['co_cta_ingr_egr'] != 'APS')].copy()
+            ajustes_rutero = ajustes_rutero.groupby(['co_tipo_doc', 'co_cli', 'cli_des', 'doc_num', 'fec_emis']).agg({'total_neto':'sum'}).reset_index()
+            ajustes_rutero.rename(columns={'total_neto':'total_ajust'}, inplace=True)
+            ajustes_rutero = ajustes_rutero[ajustes_rutero['co_cli'] == st.session_state.rutero_selected]
+            st.metric(
+                    label ='Total ajustes', 
+                    value='{:,.2f}'.format(ajustes_rutero['total_ajust'].sum())
+                )
+            ajustes_rutero = ajustes_rutero.style.format({'total_ajust': '{:,.2f}'}, precision=2)
+            st.dataframe(ajustes_rutero,
+                        column_config={
+                                        "co_cli": st.column_config.TextColumn(
+                                        "ruta",
+                                            width='small',
+                                        ),
+                                        "cli_des": st.column_config.TextColumn(
+                                        "razón social",
+                                        width='large',
+                                        ),
+                                        "doc_num": st.column_config.TextColumn(
+                                        "número ajuste",
+                                        width='medium',
+                                        ),
+                                        "co_tipo_doc": st.column_config.TextColumn(
+                                        "tipo ajuste.",
                                         width='small',
-                                    ),
-                                    "cli_des": st.column_config.TextColumn(
-                                    "razón social",
-                                    width='large',
-                                    ),
-                                    "doc_num": st.column_config.TextColumn(
-                                    "número ajuste",
-                                    width='medium',
-                                    ),
-                                    "co_tipo_doc": st.column_config.TextColumn(
-                                    "tipo ajuste.",
-                                    width='small',
-                                    ),
-                                    "fec_emis": st.column_config.TextColumn(
-                                    "fecha",
-                                    width='small')},
-                    use_container_width=False,
-                    hide_index=True)
+                                        ),
+                                        "fec_emis": st.column_config.TextColumn(
+                                        "fecha",
+                                        width='small')},
+                        use_container_width=False,
+                        hide_index=True)
         
     with tab8:
         st.markdown('''
         :blue[Cobros realizados a rutero].''')
         tb8_col1, tb8_col2 = st.columns(2)
         cobros_rutero = movimientos_cobros(tip_cli='R', fecha_d=fecha_ini, fecha_h=fecha_fin)
-        cobros_rutero = cobros_rutero[cobros_rutero['tip_cli'] == 'R']
-        cobros_rutero = cobros_rutero.groupby(['co_cli', 'cli_des', 'co_tipo_doc', 'cob_num', 'fecha', 'nro_doc'], sort=False).agg({'cargo':'sum'}).reset_index()
-        cobros_rutero.rename(columns={'fecha':'fec_emis', 'cargo':'total_cobro'}, inplace=True)
-        cobros_rutero = cobros_rutero[cobros_rutero['co_cli'] == st.session_state.rutero_selected]
-        with tb8_col1:
-            st.metric(
-                    label ='Total cobros', 
-                    value='{:,.2f}'.format(cobros_rutero['total_cobro'].sum())
-                )
-        with tb8_col2:
-            st.metric(
-                    label ='Número de documentos.', 
-                    value=cobros_rutero['total_cobro'].count()
-                ) 
-        cobros_rutero = cobros_rutero.style.format({'total_cobro': '{:,.2f}'}, precision=2)
-        st.dataframe(cobros_rutero,
-                    column_config={
-                                    "co_cli": st.column_config.TextColumn(
-                                    "ruta",
+        if len(cobros_rutero) > 0:
+            cobros_rutero = cobros_rutero[cobros_rutero['tip_cli'] == 'R']
+            cobros_rutero = cobros_rutero.groupby(['co_cli', 'cli_des', 'co_tipo_doc', 'cob_num', 'fecha', 'nro_doc'], sort=False).agg({'cargo':'sum'}).reset_index()
+            cobros_rutero.rename(columns={'fecha':'fec_emis', 'cargo':'total_cobro'}, inplace=True)
+            cobros_rutero = cobros_rutero[cobros_rutero['co_cli'] == st.session_state.rutero_selected]
+            with tb8_col1:
+                st.metric(
+                        label ='Total cobros', 
+                        value='{:,.2f}'.format(cobros_rutero['total_cobro'].sum())
+                    )
+            with tb8_col2:
+                st.metric(
+                        label ='Número de documentos.', 
+                        value=cobros_rutero['total_cobro'].count()
+                    ) 
+            cobros_rutero = cobros_rutero.style.format({'total_cobro': '{:,.2f}'}, precision=2)
+            st.dataframe(cobros_rutero,
+                        column_config={
+                                        "co_cli": st.column_config.TextColumn(
+                                        "ruta",
+                                            width='small',
+                                        ),
+                                        "cli_des": st.column_config.TextColumn(
+                                        "razón social",
+                                        width='large',
+                                        ),
+                                        "co_tipo_doc": st.column_config.TextColumn(
+                                        "tipo doc.",
                                         width='small',
-                                    ),
-                                    "cli_des": st.column_config.TextColumn(
-                                    "razón social",
-                                    width='large',
-                                    ),
-                                    "co_tipo_doc": st.column_config.TextColumn(
-                                    "tipo doc.",
-                                    width='small',
-                                    ),
-                                    "cob_num": st.column_config.TextColumn(
-                                    "núm. cobro",
-                                    width='medium',
-                                    ),
-                                    "nro_doc": st.column_config.TextColumn(
-                                    "núm. doc",
-                                    width='medium',
-                                    ),
-                                    "fec_emis": st.column_config.TextColumn(
-                                    "fecha",
-                                    width='small')},
-                    use_container_width=False,
-                    hide_index=True)    
+                                        ),
+                                        "cob_num": st.column_config.TextColumn(
+                                        "núm. cobro",
+                                        width='medium',
+                                        ),
+                                        "nro_doc": st.column_config.TextColumn(
+                                        "núm. doc",
+                                        width='medium',
+                                        ),
+                                        "fec_emis": st.column_config.TextColumn(
+                                        "fecha",
+                                        width='small')},
+                        use_container_width=False,
+                        hide_index=True)    
