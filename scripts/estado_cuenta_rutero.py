@@ -207,61 +207,72 @@ class EstadoCuentaRutero:
         clientes = DatosProfit(self.conexion).clientes()[['co_cli', 'cli_des']]
         # (+ más Notas)
         notas_entrega = self.resumen_nota_entrega_rutero(**kwargs)[['co_cli', 'fec_emis', 'total_item']]
-        notas_entrega['fec_emis'] = notas_entrega['fec_emis'].dt.normalize()
         notas_entrega.rename(columns={'total_item':'total_ne'}, inplace=True)
-        notas_entrega['fec_emis'] = notas_entrega['fec_emis'].dt.normalize()
-        notas_entrega_sum = notas_entrega.groupby(['co_cli', 'fec_emis']).agg({'total_ne': 'sum'}).reset_index() 
+        if len(notas_entrega):
+            notas_entrega['fec_emis'] = notas_entrega['fec_emis'].dt.normalize()
+            notas_entrega['fec_emis'] = notas_entrega['fec_emis'].dt.normalize()
+            notas_entrega = notas_entrega.groupby(['co_cli', 'fec_emis']).agg({'total_ne': 'sum'}).reset_index() 
         # (+ más Facturas directas)
-        facturas_directas = self.resumen_facturas_rutero(**kwargs)
-        facturas_directas['fec_emis'] = facturas_directas['fec_emis'].dt.normalize()
-        facturas_directas_sum = facturas_directas.groupby(['co_cli', 'fec_emis']).agg({'total_item':'sum'}).reset_index()
-        facturas_directas_sum.rename(columns={'total_item':'total_fd'}, inplace=True)
+        facturas_directas = self.resumen_facturas_rutero(**kwargs)[['co_cli', 'fec_emis', 'total_item']]
+        facturas_directas.rename(columns={'total_item':'total_fd'}, inplace=True)
+        if len(facturas_directas):
+            facturas_directas['fec_emis'] = facturas_directas['fec_emis'].dt.normalize()
+            facturas_directas = facturas_directas.groupby(['co_cli', 'fec_emis']).agg({'total_fd':'sum'}).reset_index()
         # (- más Facturas comercios ruteros)
-        facturas_comercios_ruteros = self.calculo_ganacia_por_factura_comercio(**kwargs)
-        facturas_comercios_ruteros['fec_emis'] = facturas_comercios_ruteros['fec_emis'].dt.normalize()
-        facturas_comercios_ruteros_sum = facturas_comercios_ruteros.groupby(['co_tran', 'fec_emis']).agg({'total_item_precio_2':'sum'}).reset_index()
-        facturas_comercios_ruteros_sum.rename(columns={'co_tran':'co_cli', 'total_item_precio_2':'total_fcp2'}, inplace=True)
+        facturas_comercios_ruteros = self.calculo_ganacia_por_factura_comercio(**kwargs)[['co_tran', 'fec_emis', 'total_item_precio_2']]
+        facturas_comercios_ruteros.rename(columns={'co_tran':'co_cli', 'total_item_precio_2':'total_fcp2'}, inplace=True)
+        if len(facturas_comercios_ruteros):
+            facturas_comercios_ruteros['fec_emis'] = facturas_comercios_ruteros['fec_emis'].dt.normalize()
+            facturas_comercios_ruteros = facturas_comercios_ruteros.groupby(['co_cli', 'fec_emis']).agg({'total_fcp2':'sum'}).reset_index()
         # (+- más o menos Ajustes)
         # este monto se maneja por saldo, es decir; una vez cobrado el documento desaparece del edo cta. Rutero
-        ajutes_ruteros = self.ajustes.documentos_ajustes(**kwargs)
-        ajutes_ruteros = ajutes_ruteros[(ajutes_ruteros['tip_cli'] == 'R') & (~ajutes_ruteros['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])) & (ajutes_ruteros['co_cta_ingr_egr'] != 'APS')].copy()
-        ajutes_ruteros['fec_emis'] = ajutes_ruteros['fec_emis'].dt.normalize()
-        ajutes_ruteros_sum = ajutes_ruteros.groupby(['co_cli', 'fec_emis']).agg({'total_neto':'sum'}).reset_index()
-        ajutes_ruteros_sum.rename(columns={'total_neto':'total_ajust'}, inplace=True)
+        ajustes_ruteros = self.ajustes.documentos_ajustes(**kwargs)[['co_cli', 'co_tipo_doc', 'tip_cli', 'co_cta_ingr_egr', 'fec_emis', 'total_neto']]
+        ajustes_ruteros.rename(columns={'total_neto':'total_ajust'}, inplace=True)
+        if len(ajustes_ruteros) > 0:
+            ajustes_ruteros = ajustes_ruteros[(ajustes_ruteros['tip_cli'] == 'R') & (~ajustes_ruteros['co_tipo_doc'].isin(['IVAN', 'AJPA', 'AJNA'])) & (ajustes_ruteros['co_cta_ingr_egr'] != 'APS')].copy()
+            ajustes_ruteros['fec_emis'] = ajustes_ruteros['fec_emis'].dt.normalize()
+            ajustes_ruteros = ajustes_ruteros.groupby(['co_cli', 'fec_emis']).agg({'total_ajust':'sum'}).reset_index()
         # (- menos cobro documentos)
-        cobros = self.cobros.view_cobros_x_cliente(**kwargs)
-        #cobros = cobros[cobros['tip_cli'] == 'R']
-        cobros['fecha'] = cobros['fecha'].dt.normalize()
-        cobros_sum = cobros.groupby(['co_cli', 'fecha']).agg({'cargo':'sum'}).reset_index()
-        cobros_sum.rename(columns={'fecha':'fec_emis', 'cargo':'total_cobro'}, inplace=True)
+        cobros = self.cobros.view_cobros_x_cliente(**kwargs)[['co_cli', 'fecha', 'cargo']]
+        cobros.rename(columns={'fecha':'fec_emis', 'cargo':'total_cobro'}, inplace=True)
+        if len(cobros) > 0:
+            cobros['fec_emis'] = cobros['fec_emis'].dt.normalize()
+            cobros = cobros.groupby(['co_cli', 'fec_emis']).agg({'total_cobro':'sum'}).reset_index()
         # (- menos ganancias)
-        ganancias_aplicadas_sum = self.ajustes.ganancias_aplicadas(**kwargs)
-        if len(ganancias_aplicadas_sum) > 0 :
-            ganancias_aplicadas_sum['fec_emis'] = ganancias_aplicadas_sum['fec_emis'].dt.normalize()
-            ganancias_aplicadas_sum = ganancias_aplicadas_sum.groupby(['co_cli', 'fec_emis']).agg({'total_neto':'sum'}).reset_index()
-        ganancias_aplicadas_sum.rename(columns={'total_neto':'total_ganancia'}, inplace=True)
+        ganancias_aplicadas = self.ajustes.ganancias_aplicadas(**kwargs)[['co_cli', 'fec_emis', 'total_neto']]
+        ganancias_aplicadas.rename(columns={'total_neto':'total_ganancia'}, inplace=True)
+        if len(ganancias_aplicadas) > 0 :
+            ganancias_aplicadas['fec_emis'] = ganancias_aplicadas['fec_emis'].dt.normalize()
+            ganancias_aplicadas = ganancias_aplicadas.groupby(['co_cli', 'fec_emis']).agg({'total_ganancia':'sum'}).reset_index()
         # (- menos fondo de garantía)
-        fondo_garantia_sum = self.fondo.movimientos_fondo_garantia(**kwargs)
-        if len(fondo_garantia_sum) > 0 :
-            fondo_garantia_sum['fec_emis'] = fondo_garantia_sum['fec_emis'].dt.normalize()
-            fondo_garantia_sum = fondo_garantia_sum.groupby(['co_cli', 'fec_emis']).agg({'total_fondo':'sum'}).reset_index()
+        fondo_garantia = self.fondo.movimientos_fondo_garantia(**kwargs)[['co_cli', 'fec_emis', 'total_fondo']]
+        if len(fondo_garantia) > 0 :
+            fondo_garantia['fec_emis'] = fondo_garantia['fec_emis'].dt.normalize()
+            fondo_garantia = fondo_garantia.groupby(['co_cli', 'fec_emis']).agg({'total_fondo':'sum'}).reset_index()
         # ESTADO DE CUENTA
         df_fechas = DataFrame(date_range(start='2021-01-01', end='2021-01-01', freq='B'), columns=['fec_emis'])
-        notas_entrega_sum = merge(df_fechas, notas_entrega_sum, how='outer')
+        notas_entrega = merge(df_fechas, notas_entrega, how='outer')
         #f_notas_entrega_sum.to_excel('f_notas_entrega_sum.xlsx')
-        notas_entrega_sum = notas_entrega_sum[['fec_emis', 'co_cli', 'total_ne']]
-        facturas_directas = merge(notas_entrega_sum, facturas_directas_sum, how='outer')
-        facturas_comercios = merge(facturas_directas, facturas_comercios_ruteros_sum, how='outer')
-        ajustes_ruteros = merge(facturas_comercios, ajutes_ruteros_sum, how='outer')
-        cobros = merge(ajustes_ruteros, cobros_sum, how='outer')
-        ganancias = merge(cobros, ganancias_aplicadas_sum, how='outer')
-        fondo = merge(ganancias, fondo_garantia_sum, how='outer')
-        movimiento_cuenta_x_dia = fondo.infer_objects(copy=False).replace(nan, 0)  # Reemplaza todos los valores nan por cero 0
-        locale.setlocale(locale.LC_ALL, 'es_ES')   
-        movimiento_cuenta_x_dia['fec_mid'] = movimiento_cuenta_x_dia['fec_emis'].dt.strftime('%a').str.upper()
-        locale.setlocale(locale.LC_ALL, '')
-        edo_cta = merge(movimiento_cuenta_x_dia, clientes, how='left', left_on='co_cli', right_on='co_cli')
-        return edo_cta[['fec_emis', 'fec_mid', 'co_cli', 'cli_des', 'total_ne', 'total_fd', 'total_fcp2', 'total_ganancia', 'total_ajust', 'total_cobro', 'total_fondo']]
+        notas_entrega = notas_entrega[['fec_emis', 'co_cli', 'total_ne']]
+        facturas_directas = merge(notas_entrega, facturas_directas, how='outer')
+        facturas_comercios = merge(facturas_directas, facturas_comercios_ruteros, how='outer')
+        ajustes_ruteros = merge(facturas_comercios, ajustes_ruteros, how='outer')
+        cobros = merge(ajustes_ruteros, cobros, how='outer')
+        ganancias = merge(cobros, ganancias_aplicadas, how='outer')
+        fondo = merge(ganancias, fondo_garantia, how='outer')
+        fondo = fondo[~fondo['co_cli'].isnull()]
+        columns_edo = ['fec_emis', 'fec_mid', 'co_cli', 'cli_des', 'total_ne', 'total_fd', 'total_fcp2', 'total_ganancia', 'total_ajust', 'total_cobro', 'total_fondo']
+        if len(fondo) > 0:
+            movimiento_cuenta_x_dia = fondo.infer_objects(copy=False).replace(nan, 0)  # Reemplaza todos los valores nan por cero 0
+            locale.setlocale(locale.LC_ALL, 'es_ES')   
+            movimiento_cuenta_x_dia['fec_mid'] = movimiento_cuenta_x_dia['fec_emis'].dt.strftime('%a').str.upper()
+            locale.setlocale(locale.LC_ALL, '')
+            edo_cta = merge(movimiento_cuenta_x_dia, clientes, how='left', left_on='co_cli', right_on='co_cli')
+        else:
+            fondo['fec_mid'] = nan
+            fondo['cli_des'] = nan
+            edo_cta = fondo[columns_edo]
+        return edo_cta[columns_edo]
     
     def calculo_ganacia_por_factura_comercio_historica(self):
         detalle_facturas = self.ventas.data_factura_venta_con_detalle()

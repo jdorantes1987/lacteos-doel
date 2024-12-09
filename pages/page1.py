@@ -33,21 +33,19 @@ def archivo_xlsx_bcv_actualizado():
     return archivo_actualizado
 
 def update_file(tasks_to_accomplish, tasks_that_are_done):
-      task = tasks_to_accomplish.get_nowait()
-      actulizar_file_tasas()
-      tasks_that_are_done.put(task)
-      time.sleep(.5)
+      update_f = actulizar_file_tasas()
+      if update_f:
+        tasks_that_are_done.put(True)
+      else:
+        tasks_that_are_done.put(False)
 
-def actualizar_tasa_bcv():
+def update_tasa_bcv():
     tasks_to_accomplish = Queue()
     tasks_that_are_done = Queue()
-    tasks_to_accomplish.put("Tasa de cambio actualizada!")
     p = Process(target=update_file,args=(tasks_to_accomplish, tasks_that_are_done))
     p.start()
     p.join()
-    st.info(tasks_that_are_done.get())
-    time.sleep(1)
-    st.rerun()
+    return tasks_that_are_done.get()
           
 
 def local_css(file_name):
@@ -80,7 +78,7 @@ if __name__ == '__main__':
     local_css("files/style.css")
     make_sidebar()
     if not archivo_xlsx_bcv_actualizado():
-      if actualizar_tasa_bcv():
+      if update_tasa_bcv():
         st.info('Tasa BCV actualizada!')
         time.sleep(0.5)
       else:
