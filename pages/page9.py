@@ -1,6 +1,6 @@
 import os
 from io import BytesIO
-from numpy import where
+from numpy import where, nan
 from datetime import datetime, timedelta
 
 from pandas import DataFrame, concat
@@ -13,7 +13,7 @@ from scripts.estado_cuenta_rutero import EstadoCuentaRutero
 from scripts.ajustes import Ajustes
 from scripts.empresa import ClsEmpresa
 from scripts.cobros import Cobros
-
+from scripts.rpt_edo_cta import ReporteEstadoCuenta
 
 
 st.set_page_config(page_title='Edo. Cta. Rutero', 
@@ -193,6 +193,7 @@ with tab1:
         f'Resumen estado de cuenta Rutero {ClsEmpresa.modulo_seleccionado()}.xlsx',
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",)
     
+    
     if st.button("🔄 Refrescar"):
         st.cache_data.clear()
         st.rerun()
@@ -229,6 +230,7 @@ if len(selected_rows) > 0 :
             mov_filtrados_x_rutero = concat([df_saldo_anterior, mov_filtrados_x_rutero], axis=0, ignore_index=True)
             mov_filtrados_x_rutero['saldo final'] = mov_filtrados_x_rutero['saldo'].cumsum()
             mov_filtrados_x_rutero.drop(columns=['saldo'], inplace=True)
+            mov_filtrados_x_rutero.replace(nan, 0.0, inplace=True)
             resumen_movimientos_style = mov_filtrados_x_rutero.style.format({
                                                                             'total_ne': '{:,.2f}', 
                                                                             'saldo final': '{:,.2f}',
@@ -292,12 +294,45 @@ if len(selected_rows) > 0 :
                                                 use_container_width=True,
                                                 hide_index=True)
             
-            mov_filtrados_x_rutero.to_excel(buf := BytesIO())
-            st.download_button(
-            'Descargar',
-            buf.getvalue(),
-            f'Movimientos estado de cuenta Rutero {ClsEmpresa.modulo_seleccionado()}.xlsx',
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",)
+            
+            tb2_col4, tb2_col5 = st.columns(2)
+            with tb2_col4:
+                mov_filtrados_x_rutero.to_excel(buf := BytesIO())
+                st.download_button(
+                'Descargar',
+                buf.getvalue(),
+                f'Movimientos estado de cuenta Rutero {ClsEmpresa.modulo_seleccionado()}.xlsx',
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",)
+                
+            with tb2_col5:
+                if st.button("reporte"):
+                    rpt = ReporteEstadoCuenta()
+                    nombre = st.session_state.rutero_selected_name
+                    codigo = st.session_state.rutero_selected
+                    saldo_a = st.session_state.rutero_selected_saldo_anterior
+                    saldo = st.session_state.rutero_selected_saldo
+                    data = dict(nombre=nombre,
+                                cod_ruta=codigo,
+                                saldo_a='{:,.2f}'.format(saldo_a),
+                                saldo='{:,.2f}'.format(saldo),
+                                fecha_rpt=datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+                                fecha_i=datetime.strptime(fecha_ini,'%Y%m%d').strftime("%d-%m-%Y"),
+                                fecha_f=datetime.strptime(fecha_fin,'%Y%m%d').strftime("%d-%m-%Y"),
+                                total_ne='{:,.2f}'.format(mov_filtrados_x_rutero['total_ne'].sum()),
+                                total_fd='{:,.2f}'.format(mov_filtrados_x_rutero['total_fd'].sum()),
+                                total_fcp2='{:,.2f}'.format(mov_filtrados_x_rutero['total_fcp2'].sum()),
+                                total_ajust='{:,.2f}'.format(mov_filtrados_x_rutero['total_ajust'].sum()),
+                                total_cobro='{:,.2f}'.format(mov_filtrados_x_rutero['total_cobro'].sum()),
+                                total_ganancia='{:,.2f}'.format(mov_filtrados_x_rutero['total_ganancia'].sum()),
+                                total_fondo='{:,.2f}'.format(mov_filtrados_x_rutero['total_fondo'].sum()),)
+                    columnas_a_formatear = ['total_ne', 'total_fd', 'total_fcp2', 'total_ajust','total_cobro', 'total_ganancia','total_fondo', 'saldo final']
+                    # Aplicar el formato a las columnas seleccionadas 
+                    mov_filtrados_x_rutero[columnas_a_formatear] = mov_filtrados_x_rutero[columnas_a_formatear].map(lambda x: '{:,.2f}'.format(x))
+                    movimientos = mov_filtrados_x_rutero.to_dict('records')
+                    
+                    rpt.reder_and_open_data(encabezados=data, 
+                                            movimientos=movimientos,
+                                            nombre_file=nombre)
             
     with tab3:
         st.markdown('''
