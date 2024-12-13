@@ -155,7 +155,11 @@ dmypy.json
 cython_debug/
 
 # Archivos carpetas locales
+<<<<<<< HEAD
 files/edos_cta/*
+=======
+file/edos_cta
+>>>>>>> 98d39b84d77c95e03c50276bc906e0f39eb61e17
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
