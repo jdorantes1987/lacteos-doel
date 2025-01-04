@@ -1,5 +1,6 @@
 import locale
 import time
+from datetime import datetime
 import socket
 import ssl
 
@@ -12,7 +13,8 @@ from scripts.bcv.data import path_file_tasas_bcv, historico_tasas_bcv
 ssl._create_default_https_context = ssl._create_unverified_context
 
 url_base = 'https://www.bcv.org.ve/sites/default/files/EstadisticasGeneral'
-dic_year_files = {'2024': ['2_1_2d24_smc.xls', '2_1_2c24_smc.xls', '2_1_2b24_smc.xls', '2_1_2a24_smc.xls'],
+dic_year_files = {'2025': ['2_1_2d25_smc.xls', '2_1_2c25_smc.xls', '2_1_2b25_smc.xls', '2_1_2a25_smc.xls'],
+                  '2024': ['2_1_2d24_smc.xls', '2_1_2c24_smc.xls', '2_1_2b24_smc.xls', '2_1_2a24_smc.xls'],
                   '2023': ['2_1_2d23_smc.xls', '2_1_2c23_smc.xls', '2_1_2c23_smc_60.xls', '2_1_2a23_smc.xls'],
                   '2022': ['2_1_2d22_smc.xls', '2_1_2c22_smc.xls', '2_1_2b22_smc.xls', '2_1_2a22_smc.xls'],
                   '2021': ['2_1_2d21_smc.xls', '2_1_2c21_smc.xls', '2_1_2b21_smc.xls', '2_1_2a21_smc_58.xls'],
@@ -22,8 +24,10 @@ dic_year_files = {'2024': ['2_1_2d24_smc.xls', '2_1_2c24_smc.xls', '2_1_2b24_smc
 # ACTUALIZA EL HISTÓRICO DE TASAS CON LA ÚLTIMA PUBLICACIÓN
 def get_data_usd_bcv_web_last_qt():
     data = DataFrame()
-    name_file_tasa_download = list(dic_year_files.values())[0][0]  # Convierte el diccionario en una lista y obtiene el primer elemento
-    url = url_base + f'/{name_file_tasa_download}'
+    year = str(datetime.now().year)
+    quaeter = -get_current_quarter_number()
+    name_file_tasa_download = dic_year_files[year][quaeter]
+    url =  f'{url_base}/{name_file_tasa_download}'
     socket.setdefaulttimeout(3) # 3 seconds
     #  cambiar el encabezado del agente de usuario
     opener = build_opener()
@@ -118,6 +122,11 @@ def actulizar_file_tasas_manual(fecha, valor_tasa):
         return True
     else:
         return False
+
+def get_current_quarter_number():
+    quarter_number = (int(datetime.now().strftime("%m")) + 2) // 3
+    return quarter_number
+
 
 if __name__ == '__main__':
     #print(get_data_usd_bcv_web_last_qt())
