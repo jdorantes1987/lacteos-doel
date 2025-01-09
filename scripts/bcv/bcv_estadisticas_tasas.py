@@ -73,9 +73,11 @@ def actulizar_file_tasas():
     locale.setlocale(locale.LC_ALL, 'es_ES')
     df_file_tasa = historico_tasas_bcv()
     df_file_tasa_new = get_data_usd_bcv_web_last_qt()
+    year = str(datetime.now().year)
+    quaeter = -get_current_quarter_number()
+    name_file_tasa_download = dic_year_files[year][quaeter]
     # Si no está vacio el dataframe obtenido de la web, no actualizar archivo histórico de tasas.
     if not df_file_tasa_new.empty:
-        name_file_tasa_download = list(dic_year_files.values())[0][0]  # Obtiene el primer nombre de la lista de diccionario
         df_file_tasa_filtred = df_file_tasa[df_file_tasa['archivo'] != name_file_tasa_download]
         df_files = [df_file_tasa_new, df_file_tasa_filtred]
         df = concat(df_files).reset_index(drop=True)
