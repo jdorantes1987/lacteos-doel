@@ -36,7 +36,7 @@ class LibroCompraVenta:
             libro['fec_comprobante'] = libro.apply(lambda x: '' if x['nro_doc'][0]!='i' else x['fec_comprobante'], axis=1)
             libro['fecha_emis'] = to_datetime(libro['fecha_emis']).dt.normalize()
             libro['fec_comprobante'] = to_datetime(libro['fec_comprobante']).dt.normalize()
-            merge_libro_tasas = merge_asof(libro, data_bcv_sort, left_on='fecha_emis', right_on='fecha', direction="nearest")  # Combinar por aproximación
+            merge_libro_tasas = merge_asof(libro, data_bcv_sort, left_on='fecha_emis', right_on='fecha', direction="backward")  # Combinar por aproximación
             merge_libro_tasas['fecha_emis'] = merge_libro_tasas['fecha_emis'].dt.strftime('%d-%m-%Y')
             merge_libro_tasas['fec_comprobante'] = merge_libro_tasas['fec_comprobante'].dt.strftime('%d-%m-%Y')
             merge_libro_tasas[['base_imp_bs', 
