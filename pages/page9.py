@@ -5,7 +5,10 @@ from datetime import datetime, timedelta
 
 from pandas import DataFrame, concat
 import matplotlib.pyplot as plt
+import base64
 import streamlit as st
+import streamlit.components.v1 as components
+
 
 from helpers.navigation import make_sidebar
 from scripts.conexion import ConexionBD
@@ -188,7 +191,7 @@ with tab1:
     
     editor_resumen_mov.to_excel(buf := BytesIO())
     st.download_button(
-        'Descargar',
+        'Excel',
         buf.getvalue(),
         f'Resumen estado de cuenta Rutero {ClsEmpresa.modulo_seleccionado()}.xlsx',
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",)
@@ -299,13 +302,13 @@ if len(selected_rows) > 0 :
             with tb2_col4:
                 mov_filtrados_x_rutero.to_excel(buf := BytesIO())
                 st.download_button(
-                'Descargar',
+                '⬇️ Excel',
                 buf.getvalue(),
                 f'Movimientos estado de cuenta Rutero {ClsEmpresa.modulo_seleccionado()}.xlsx',
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",)
                 
             with tb2_col5:
-                if st.button("reporte"):
+                if st.button("Reporte"):
                     rpt = ReporteEstadoCuenta()
                     nombre = st.session_state.rutero_selected_name
                     codigo = st.session_state.rutero_selected
@@ -330,9 +333,17 @@ if len(selected_rows) > 0 :
                     mov_filtrados_x_rutero[columnas_a_formatear] = mov_filtrados_x_rutero[columnas_a_formatear].map(lambda x: '{:,.2f}'.format(x))
                     movimientos = mov_filtrados_x_rutero.to_dict('records')
                     
-                    rpt.reder_and_open_data(encabezados=data, 
+                    file_html = rpt.reder_and_open_data(encabezados=data, 
                                             movimientos=movimientos,
                                             nombre_file=nombre)
+                    st.success("🎉 Estado de cuenta generado!")
+                    st.download_button(
+                        "⬇️ Download",
+                        data=file_html,
+                        file_name=f"{nombre}.html",
+                        mime="application/xhtml+xml",
+                    )
+                    
             
     with tab3:
         st.markdown('''

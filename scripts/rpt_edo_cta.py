@@ -18,7 +18,7 @@ class ReporteEstadoCuenta:
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(template_html)
             f.close
-            rdFile = webbrowser.open(filename)  #Full path to your file
+            return template_html
         
         
     
