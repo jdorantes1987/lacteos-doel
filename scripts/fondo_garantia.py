@@ -18,6 +18,7 @@ class FondoGarantia:
         
     def movimientos_fondo_garantia(self, **kwargs):
         fondo_garantia = DataFrame(columns=['co_cli', 'co_art', 'doc_num', 'fec_emis', 'co_uni', 'total_art', 'valor', 'total_fondo'])
+        fondo_garantia_ne = DataFrame(columns=['co_cli', 'co_art', 'doc_num', 'fec_emis', 'co_uni', 'total_art', 'valor', 'total_fondo'])
         articulos_unidad = self.datos_profit.unidades()
         set_unidades_manejan_fondo = set(articulos_unidad[articulos_unidad['campo1'] == 'FG']['co_art'])  #  FG = Fondo de Garantia
         tabla_fondo_garantia = read_excel(path_file_fondo_garantia, dtype={'co_cli':'object'}, parse_dates=['fec_emis'])
@@ -37,7 +38,10 @@ class FondoGarantia:
         if len(ventas_ruteros) > 0 and len(tabla_fondo_garantia) > 0 :
             fondo_garantia_fact = merge_asof(ventas_ruteros, tabla_fondo_garantia, on='fec_emis', by='co_cli')
             fondo_garantia_fact['total_fondo'] = fondo_garantia_fact['total_art'] * fondo_garantia_fact['valor']
-            fondo_garantia = concat([fondo_garantia_ne, fondo_garantia_fact], axis=0, ignore_index=True)
+            if len(fondo_garantia_ne) > 0:
+                fondo_garantia = concat([fondo_garantia_ne, fondo_garantia_fact], axis=0, ignore_index=True)
+            else:
+                fondo_garantia = fondo_garantia_fact
         return fondo_garantia
         
     def saldo_anterior_fondo_garantia(self, **kwargs):
