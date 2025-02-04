@@ -59,7 +59,7 @@ class LibroCompraVenta:
                                     'r', 
                                     'cli_des',
                                     'num_comprobante',
-                                    'nro_orig',
+                                    'nro_doc',
                                     'n_control', 
                                     'doc_afec',
                                     'total_neto_bs',
