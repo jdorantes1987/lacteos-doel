@@ -13,7 +13,7 @@ from scripts.bcv.data import path_file_tasas_bcv, historico_tasas_bcv
 ssl._create_default_https_context = ssl._create_unverified_context
 
 url_base = 'https://www.bcv.org.ve/sites/default/files/EstadisticasGeneral'
-dic_year_files = {'2025': ['2_1_2d25_smc.xls', '2_1_2c25_smc.xls', '2_1_2b25_smc_10.xls', '2_1_2a25_smc.xls'],
+dic_year_files = {'2025': ['2_1_2d25_smc.xls', '2_1_2c25_smc.xls', '2_1_2b25_smc.xls', '2_1_2a25_smc.xls'],
                   '2024': ['2_1_2d24_smc.xls', '2_1_2c24_smc.xls', '2_1_2b24_smc.xls', '2_1_2a24_smc.xls'],
                   '2023': ['2_1_2d23_smc.xls', '2_1_2c23_smc.xls', '2_1_2c23_smc_60.xls', '2_1_2a23_smc.xls'],
                   '2022': ['2_1_2d22_smc.xls', '2_1_2c22_smc.xls', '2_1_2b22_smc.xls', '2_1_2a22_smc.xls'],
