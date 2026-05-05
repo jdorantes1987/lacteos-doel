@@ -3,12 +3,16 @@ import time
 from io import BytesIO
 import altair as alt 
 from multiprocessing import Process, Queue
-import streamlit as st
 from datetime import datetime, date
+
+import streamlit as st
+import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+
 from helpers.navigation import make_sidebar
 from scripts.bcv.data import get_fecha_tasa_bcv_dia, get_monto_tasa_bcv_dia
 from scripts.bcv.data import historico_tasas_bcv, path_file_tasas_bcv
-from scripts.bcv.bcv_estadisticas_tasas import actulizar_file_tasas
+from scripts.bcv.bcv_estadisticas_tasas import actulizar_file_tasas, actulizar_file_tasas_manual
 from scripts.empresa import ClsEmpresa
 
 st.set_page_config(page_title='Inicio', 
@@ -30,31 +34,30 @@ def archivo_xlsx_bcv_actualizado():
     return archivo_actualizado
 
 def update_file(tasks_to_accomplish, tasks_that_are_done):
-      task = tasks_to_accomplish.get_nowait()
-      actulizar_file_tasas()
-      tasks_that_are_done.put(task)
-      time.sleep(.5)
+      update_f = actulizar_file_tasas()
+      if update_f:
+        tasks_that_are_done.put(True)
+      else:
+        tasks_that_are_done.put(False)
 
-def actualizar_tasa_bcv():
+def update_tasa_bcv():
     tasks_to_accomplish = Queue()
     tasks_that_are_done = Queue()
-    tasks_to_accomplish.put("Tasa de cambio actualizada!")
     p = Process(target=update_file,args=(tasks_to_accomplish, tasks_that_are_done))
     p.start()
     p.join()
-    st.info(tasks_that_are_done.get())
-    time.sleep(1)
-    st.rerun()
+    return tasks_that_are_done.get()
           
 
 def local_css(file_name):
         with open(file_name) as f:
             st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
+def tasa_manual(fecha, valor):
+   actulizar_file_tasas_manual(fecha=fecha, valor_tasa=valor)
 
 if __name__ == '__main__':
-    date = get_fecha_tasa_bcv_dia().date()
-
+    date_t = datetime.strptime(str(get_fecha_tasa_bcv_dia().date()), '%Y-%m-%d')
     table_scorecard = """
     <div class="ui five small statistics">
       <div class="grey statistic">
@@ -65,7 +68,7 @@ if __name__ == '__main__':
         </div>
       </div>
       <div class="grey statistic">
-        <div class="value">""" +str(date)+  """
+        <div class="value">""" + date_t.strftime('%d-%m-%Y') +  """
         </div>
         <div class="grey label">
           Fecha valor tasa BCV
@@ -76,43 +79,78 @@ if __name__ == '__main__':
     local_css("files/style.css")
     make_sidebar()
     if not archivo_xlsx_bcv_actualizado():
-       actualizar_tasa_bcv()
+      if update_tasa_bcv():
+        st.info('Tasa BCV actualizada!')
+        time.sleep(0.5)
+      else:
+        st.warning('No se pudo actualizar el archivo de histórico de tasas BCV')
+        fecha = st.date_input("fecha de la tasa", disabled=True).strftime('%Y%m%d') # Convierte la fecha a YYYYMMDD
+        valor = st.number_input('Ingrese el valor de la tasa', format="%.5f")
+        if st.button("Deseas actualizar la tasa de forma manual?",  on_click=tasa_manual, args=(fecha, valor)):
+          st.info('Tasa BCV actualizada!')
+      st.rerun()
 
-with st.expander("Evolución tasa BCV"):
-     historico_tasa = historico_tasas_bcv()
-     df = historico_tasa[historico_tasa['año'] == 2024]
-     chart = alt.Chart(df, title='Histórico').mark_line().encode(
-      x='fecha', y=alt.Y('venta_ask2', scale=alt.Scale(domain=[df['venta_ask2'].min() - 1, df['venta_ask2'].max() + 1])), strokeDash='cod_mon'
-        ).properties(width=650, height=350)     
-     st.altair_chart(chart, use_container_width=True)
+historico_tasa = historico_tasas_bcv()
+df = historico_tasa[historico_tasa['año'] == date.today().year]
+fig = go.Figure()
+fig = fig.add_trace(
+    go.Scatter(
+        x=df["fecha"].dt.normalize(),
+        y=df["venta_ask2"],
+        mode="lines+markers",  # marcadores puntos
+        marker=dict(  # configura tamaño y color del marcador
+            size=3,
+            color="rgba(255, 217, 102, .9)",
+            line=dict(
+                color="rgba(191, 70, 0, .8)",  # configura color y tamaño de la linea
+                width=1,
+            ),
+        ),
+        text="Tasa",
+        name="Tasas",
+    )
+)
+fig.update_traces(textposition="bottom right")
+fig.update_layout(
+    title="Histórico de tasas BCV",
+    plot_bgcolor="#f5fafa",
+)
+fig.update_xaxes(nticks=13)
+st.plotly_chart(fig, use_container_width=True)
 
-with st.expander("Histórico de tasas"):
-     st.dataframe(historico_tasa[['cod_mon', 'fecha', 'compra_bid2', 'venta_ask2', 'var_tasas']],
-                column_config={
-                                "cod_mon": st.column_config.TextColumn(
-                                "moneda",
-                                ),
-                                "compra_bid2": st.column_config.NumberColumn(
-                                "compra",
-                                format="%.4f",
-                                ),
-                                "venta_ask2": st.column_config.NumberColumn(
-                                "venta",
-                                format="%.4f",
-                                ),
-                                "var_tasas": st.column_config.NumberColumn(
-                                "variación",
-                                format="%.4f",
-                                ),
-                                "fecha":st.column_config.DateColumn(
-                                "fecha",
-                                format="DD-MM-YYYY"
-                                )},
-                use_container_width=False,
-                hide_index=True)
-     historico_tasa.to_excel(buf := BytesIO())
-     st.download_button(
-        'Descargar histórico de tasas',
-        buf.getvalue(),
-        f'Histórico de tasas BCV.xlsx',
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",)
+st.subheader("Histórico de tasas BCV")
+cmap = plt.colormaps["YlOrRd"]
+st.dataframe(
+    historico_tasa[
+        ["cod_mon", "fecha", "compra_bid2", "venta_ask2", "var_tasas"]
+    ].style.background_gradient(
+        subset=["var_tasas"], cmap=cmap, low=0, vmin=-2, vmax=2, high=1, axis=0
+    ),
+    column_config={
+        "cod_mon": st.column_config.TextColumn(
+            "moneda",
+        ),
+        "compra_bid2": st.column_config.NumberColumn(
+            "compra",
+            format="%.4f",
+        ),
+        "venta_ask2": st.column_config.NumberColumn(
+            "venta",
+            format="%.4f",
+        ),
+        "var_tasas": st.column_config.NumberColumn(
+            "variación",
+            format="%.4f",
+        ),
+        "fecha": st.column_config.DateColumn("fecha", format="DD-MM-YYYY"),
+    },
+    use_container_width=False,
+    hide_index=True,
+)
+historico_tasa.to_excel(buf := BytesIO())
+st.download_button(
+    "Descargar histórico de tasas",
+    buf.getvalue(),
+    "Histórico de tasas BCV.xlsx",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+)

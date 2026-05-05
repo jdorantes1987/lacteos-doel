@@ -20,7 +20,7 @@ consultas_generales = ConsultasGenerales(conexion)
 
 @st.cache_data
 def devoluciones_por_agregar():
-    dev = devoluciones.resumen_pedidos(anio='all', mes='all')
+    dev = devoluciones.resumen_pedidos_dev(anio='all', mes='all')
     dev.rename(columns={'co_tran': 'cod_rutero', 'des_tran': 'descrip_rutero', 'doc_num': 'num_pedido'}, inplace=True)
     dev['total'] = dev['monto_base_item'] + dev['iva']
     return dev.groupby(['cod_rutero', 'descrip_rutero', 'co_cli', 'cli_des', 'num_pedido']).agg({'monto_base_item': 'sum', 

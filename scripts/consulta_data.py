@@ -15,29 +15,27 @@ class ClsData:
     def __init__(self, conexion):
         self.odata = DatosProfit(conexion)
        
-    def ventas_dt(self, anio, mes, usd):
-        return self.odata.ventas_con_detalle(anio=anio, mes=mes, usd=usd)
+    def ventas_dt(self, **kwargs):
+        return self.odata.ventas_con_detalle(**kwargs)
     
-    def ventas_rsm(self, anio, mes, usd):
-        return self.odata.ventas_sin_detalle(anio=anio, mes=mes, usd=usd)
+    def ventas_rsm(self, **kwargs):
+        return self.odata.ventas_sin_detalle(**kwargs)
     
-    def ventas_dicc(self, anio, usd):
-        return self.odata.dicc_ventas_total_por_anio(anio=anio, usd=usd)
+    def ventas_dicc(self, **kwargs):
+        return self.odata.dicc_ventas_total_por_anio(**kwargs)
     
-    def ventas_dicc_x_vendedor(self, anio, vendedor, usd):
+    def ventas_dicc_x_vendedor(self, **kwargs):
         return (
-            self.ventas_dicc(anio, usd)
-            if vendedor == 'Todos'
-            else self.odata.dicc_ventas_total_por_anio_vendedor(
-                anio=anio, vendedor=vendedor, usd=usd
-            )
+            self.ventas_dicc(**kwargs)
+            if kwargs.get('vendedor') == 'Todos'
+            else self.odata.dicc_ventas_total_por_anio_vendedor(**kwargs)
         )
     
-    def cuentas_por_cobrar_agrupadas(self, anio, mes, usd, vendedor):
-        return self.odata.cxc_clientes_resum_grouped(anio=anio, mes=mes, usd=usd, vendedor=vendedor)
+    def cuentas_por_cobrar_agrupadas(self, **kwargs):
+        return self.odata.cxc_clientes_resum_grouped(**kwargs)
     
-    def cuentas_por_cobrar_det(self, anio, mes, usd, vendedor):
-        return self.odata.facturacion_saldo_x_clientes_detallado(anio=anio, mes=mes, usd=usd, vendedor=vendedor)
+    def cuentas_por_cobrar_det(self, **kwargs):
+        return self.odata.facturacion_saldo_x_clientes_detallado(**kwargs)
     
     # @audit
     # def cuentas_por_cobrar_pivot(self, anio, mes, usd, vendedor):
