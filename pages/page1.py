@@ -1,109 +1,186 @@
-import os
 import time
+from datetime import date, datetime
 from io import BytesIO
-import altair as alt 
-from multiprocessing import Process, Queue
-from datetime import datetime, date
+from pathlib import Path
+from threading import Thread
 
-import streamlit as st
-import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import streamlit as st
+from scripts.files_excel import datos_estadisticas_tasas
+from scripts.bcv_estadisticas_tasas import (
+    actulizar_file_tasas,
+    actulizar_file_tasas_manual,
+)
 
+from scripts.consulta_data import ClsData
 from helpers.navigation import make_sidebar
-from scripts.bcv.data import get_fecha_tasa_bcv_dia, get_monto_tasa_bcv_dia
-from scripts.bcv.data import historico_tasas_bcv, path_file_tasas_bcv
-from scripts.bcv.bcv_estadisticas_tasas import actulizar_file_tasas, actulizar_file_tasas_manual
-from scripts.empresa import ClsEmpresa
 
-st.set_page_config(page_title='Inicio', 
-                   layout='wide', 
-                   page_icon='⚡')
+st.set_page_config(page_title="DataPy: Inicio", layout="wide", page_icon=":vs:")
 
-t1, t2 = st.columns((3,5)) 
-t1.image('./images/logo.png')
-titulo_empresa = 'Lácteos Doel' if ClsEmpresa.modulo_seleccionado() =='DOEL' else 'Distribuidora Panaraca'
-t2.title(titulo_empresa)
-st.markdown("---")
-st.write('Información BCV')
+# Inicialización de estado
+for k, v in {
+    "stage1": 0,
+}.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+user = st.session_state.get("usuario")
+nombre_empresa = (
+    "Distribuidora Panaraca, C.A."
+    if st.session_state.cls_empresa._usuarios.get(user, {}).get("modulo") == "PANA"
+    else "Lacteos Doel, C.A."
+)
+st.title(nombre_empresa)
+st.header("Información")
+anio_actual = date.today().year
+if "data_select" not in st.session_state:
+    st.session_state["data_select"] = anio_actual
+
+
+def set_stage(i):
+    st.session_state.stage1 = i
+
+
+if st.button("Refrescar"):
+    set_stage(0)
+
+if st.session_state.stage1 == 0:
+    st.cache_data.clear()
+    set_stage(1)
+
+
+@st.cache_data
+def datos_bcv():
+    return datos_estadisticas_tasas()
+
+
 def archivo_xlsx_bcv_actualizado():
+    path = "scripts/bcv/tasas_BCV.xlsx"
     # obtiene la última fecha de modificación.
-    modTimesinceEpoc = os.path.getmtime(path_file_tasas_bcv)
+    # modTimesinceEpoc = os.path.getmtime(path) # Versión arroja error en linux, se reemplaza por la función de Path
+    modTimesinceEpoc = Path(path).stat().st_mtime
     hoy = date.today()
     fecha_modificacion = datetime.fromtimestamp(modTimesinceEpoc).date()
     archivo_actualizado = hoy == fecha_modificacion
     return archivo_actualizado
 
-def update_file(tasks_to_accomplish, tasks_that_are_done):
-      update_f = actulizar_file_tasas()
-      if update_f:
-        tasks_that_are_done.put(True)
-      else:
-        tasks_that_are_done.put(False)
+
+def update_file_thread(tasks_that_are_done):
+    try:
+        update_f = actulizar_file_tasas()
+        tasks_that_are_done.append(bool(update_f))
+    except Exception as exc:
+        print(f"Error actualizando tasas BCV: {exc}")
+        tasks_that_are_done.append(False)
+
 
 def update_tasa_bcv():
-    tasks_to_accomplish = Queue()
-    tasks_that_are_done = Queue()
-    p = Process(target=update_file,args=(tasks_to_accomplish, tasks_that_are_done))
-    p.start()
-    p.join()
-    return tasks_that_are_done.get()
-          
+    tasks_that_are_done = []
+    thread = Thread(target=update_file_thread, args=(tasks_that_are_done,))
+    thread.start()
+    thread.join()
+    return tasks_that_are_done[0] if tasks_that_are_done else False
+
 
 def local_css(file_name):
-        with open(file_name) as f:
-            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    with open(file_name) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
 
 def tasa_manual(fecha, valor):
-   actulizar_file_tasas_manual(fecha=fecha, valor_tasa=valor)
+    actulizar_file_tasas_manual(fecha=fecha, valor_tasa=valor)
 
-if __name__ == '__main__':
-    date_t = datetime.strptime(str(get_fecha_tasa_bcv_dia().date()), '%Y-%m-%d')
-    table_scorecard = """
+
+if __name__ == "__main__":
+    emp_sel = st.session_state.cls_empresa._usuarios.get(user, {}).get("empresa")
+    odata = ClsData(st.session_state.conexion)
+    new_cod = "N/A"
+    date_t = datetime.strptime(str(odata.get_fecha_tasa_bcv_dia().date()), "%Y-%m-%d")
+    table_scorecard = (
+        """
     <div class="ui five small statistics">
       <div class="grey statistic">
-        <div class="value">"""+str(get_monto_tasa_bcv_dia())+"""
+        <div class="value">"""
+        + str(odata.get_tasa_bcv_dia())
+        + """
         </div>
         <div class="grey label">
           Tasa BCV
         </div>
       </div>
       <div class="grey statistic">
-        <div class="value">""" + date_t.strftime('%d-%m-%Y') +  """
+        <div class="value">"""
+        + date_t.strftime("%d-%m-%Y")
+        + """
         </div>
         <div class="grey label">
           Fecha valor tasa BCV
         </div>
       </div>
+        <div class="grey statistic">
+            <div class="value">"""
+        + str(new_cod)
+        + """
+            </div>
+            <div class="label">
+            Nuevo código de cliente
+            </div>
+        </div>
       """
+    )
     st.markdown(table_scorecard, unsafe_allow_html=True)
-    local_css("files/style.css")
+    local_css("style.css")
     make_sidebar()
     if not archivo_xlsx_bcv_actualizado():
-      if update_tasa_bcv():
-        st.info('Tasa BCV actualizada!')
-        time.sleep(0.5)
-      else:
-        st.warning('No se pudo actualizar el archivo de histórico de tasas BCV')
-        fecha = st.date_input("fecha de la tasa", disabled=True).strftime('%Y%m%d') # Convierte la fecha a YYYYMMDD
-        valor = st.number_input('Ingrese el valor de la tasa', format="%.5f")
-        if st.button("Deseas actualizar la tasa de forma manual?",  on_click=tasa_manual, args=(fecha, valor)):
-          st.info('Tasa BCV actualizada!')
-      st.rerun()
+        if update_tasa_bcv():
+            st.info("Tasa BCV actualizada!")
+            time.sleep(0.5)
+        else:
+            st.warning("No se pudo actualizar el archivo de histórico de tasas BCV")
+            fecha = st.date_input("fecha de la tasa", disabled=True).strftime(
+                "%Y%m%d"
+            )  # Convierte la fecha a YYYYMMDD
+            valor = st.number_input("Ingrese el valor de la tasa", format="%.5f")
+            if st.button(
+                "Deseas actualizar la tasa de forma manual?",
+                on_click=tasa_manual,
+                args=(fecha, valor),
+            ):
+                st.info("Tasa BCV actualizada!")
+        st.rerun()
 
-historico_tasa = historico_tasas_bcv()
-df = historico_tasa[historico_tasa['año'] == date.today().year]
+if "stage1" not in st.session_state or "tasas" not in st.session_state:
+    st.session_state.stage1 = 0
+    st.session_state.tasas = datos_bcv()
+
+if st.session_state.stage1 == 0:
+    pass
+
+
+# Datos históricos de tasas BCV
+year_list = st.session_state.tasas["año"].unique().tolist()  # Lista de todos los años
+year_list.insert(0, "Todos")
+data_select = st.pills("Datos", year_list, default=anio_actual, selection_mode="single")
+st.session_state["data_select"] = data_select
+filter_data_tasas = (
+    (st.session_state.tasas["año"] == st.session_state["data_select"])
+    if st.session_state["data_select"] != "Todos"
+    else (st.session_state.tasas["año"] > 0)
+)
+df_hist_tasas = st.session_state.tasas[filter_data_tasas]
 fig = go.Figure()
 fig = fig.add_trace(
     go.Scatter(
-        x=df["fecha"].dt.normalize(),
-        y=df["venta_ask2"],
+        x=df_hist_tasas["fecha"].dt.normalize(),
+        y=df_hist_tasas["venta_ask2"],
         mode="lines+markers",  # marcadores puntos
-        marker=dict(  # configura tamaño y color del marcador
-            size=3,
+        marker=dict(
+            size=3,  # tamaño del marcador o circulo
             color="rgba(255, 217, 102, .9)",
             line=dict(
                 color="rgba(191, 70, 0, .8)",  # configura color y tamaño de la linea
-                width=1,
+                width=1,  # tamaño de la línea del borde del marcador o circulo
             ),
         ),
         text="Tasa",
@@ -115,13 +192,13 @@ fig.update_layout(
     title="Histórico de tasas BCV",
     plot_bgcolor="#f5fafa",
 )
-fig.update_xaxes(nticks=13)
+fig.update_xaxes(nticks=13)  # número de ticks en el eje x
 st.plotly_chart(fig, use_container_width=True)
 
 st.subheader("Histórico de tasas BCV")
 cmap = plt.colormaps["YlOrRd"]
 st.dataframe(
-    historico_tasa[
+    df_hist_tasas[
         ["cod_mon", "fecha", "compra_bid2", "venta_ask2", "var_tasas"]
     ].style.background_gradient(
         subset=["var_tasas"], cmap=cmap, low=0, vmin=-2, vmax=2, high=1, axis=0
@@ -147,7 +224,8 @@ st.dataframe(
     use_container_width=False,
     hide_index=True,
 )
-historico_tasa.to_excel(buf := BytesIO())
+
+df_hist_tasas.to_excel(buf := BytesIO())
 st.download_button(
     "Descargar histórico de tasas",
     buf.getvalue(),

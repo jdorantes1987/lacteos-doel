@@ -1,90 +1,120 @@
-import streamlit as st
 from time import sleep
+
+import streamlit as st
 from streamlit.runtime.scriptrunner import get_script_run_ctx
-from streamlit.source_util import get_pages
-from user.usuarios_roles import ClsUsuariosRoles
-from scripts.empresa import ClsEmpresa
+from empresa import ClsEmpresa
+
+# Removed import of 'get_pages' as it is no longer available in Streamlit
+
 
 def get_current_page_name():
     ctx = get_script_run_ctx()
     if ctx is None:
         raise RuntimeError("No se pudo obtener el contexto del script.")
 
-    pages = get_pages("")
-    return pages[ctx.page_script_hash]["page_name"] # type: ignore
+    return ctx.page_script_hash.split("/")[-1]  # type: ignore
+
 
 def make_sidebar():
     with st.sidebar:
-        # Custom CSS for changing the sidebar color
-        custom_css = """
-                    
-                    """
-        # Apply custom CSS
-        st.markdown(custom_css, unsafe_allow_html=True)
-        st.markdown("<h1 style='text-align: center; color: grey;'>Gestión de Datos</h1>", 
-                    unsafe_allow_html=True
+        # Centrar el título
+        # quitar margenes
+        st.markdown(
+            "<h1 style='text-align: center; margin: 0;'>DataPy</h1>",
+            unsafe_allow_html=True,
         )
-        st.sidebar.markdown("---")
-        st.write("")
-        st.write("")
+        # imagen desde URL
+        # Quitar margenes
+        image_url = "images/svg3.svg"
 
+        st.image(image_url)
+        # imagen local
+        st.markdown("---")
+
+        # chequea si el usuario está logueado
         if st.session_state.get("logged_in", False):
-            _extracted_from_make_sidebar()
-        elif get_current_page_name() != "inicio":
-            # If anyone tries to access a secret page without being logged in,
-            # redirect them to the login page
-            st.switch_page("inicio.py") 
-        
-# TODO Rename this here and in `make_sidebar`
+            _extracted_from_make_sidebar()  # llama a la función que crea el sidebar
+        elif get_current_page_name() != "app":
+            # si no está logueado y no está en la página de login, redirige a la página de login
+            st.switch_page("app.py")
+
+
 def _extracted_from_make_sidebar():
+    rol_user = st.session_state.rol_user
+    es_admin = rol_user.has_permission("Administrador", "read")
+
     st.page_link("pages/page1.py", label="Inicio", icon=None)
-    if ClsUsuariosRoles.roles().get('NotasCxc', 0) == 1:
-        st.page_link("pages/page2.py", label="Notas de entrega", icon=None)
-    if ClsUsuariosRoles.roles().get('AddDev', 0) == 1:
-        st.page_link("pages/page3.py", label="Gestión Ruteros", icon=None)
-    if ClsUsuariosRoles.roles().get('Proc_Masiv', 0) == 1:
-        st.page_link("pages/page4.py", label="Procesos Masivos", icon=None)
-    if ClsUsuariosRoles.roles().get('Cxc', 0) == 1:
-        st.page_link("pages/page5.py", label="Cuentas por cobrar", icon=None)
-    if ClsUsuariosRoles.roles().get('Trib', 0) == 1:
-        st.page_link("pages/page6.py", label="Tributario", icon=None)
-    if ClsUsuariosRoles.roles().get('Inventario', 0) == 1:
-        st.page_link("pages/page7.py", label="Inventario", icon=None)
-    if ClsUsuariosRoles.roles().get('Compras', 0) == 1:
-        st.page_link("pages/page8.py", label="Compras", icon=None)
-    if ClsUsuariosRoles.roles().get('EdoCtaRut', 0) == 1:
-        st.page_link("pages/page9.py", label="Edo. Cta. Rutero", icon=None)
-    if ClsUsuariosRoles.roles().get('GanRut', 0)== 1:
-        st.page_link("pages/page10.py", label="Ganancias Ruteros", icon=None)
+
+    pages_config = [
+        ("pages/page2.py", "Notas de entrega", "Notas", "read"),
+        ("pages/page3.py", "Gestión Ruteros", "Rutero", "create"),
+        ("pages/page4.py", "Procesos Masivos", "ProcesosMasivos", "read"),
+        ("pages/page5.py", "Cuentas por cobrar", "CxC", "read"),
+        ("pages/page6.py", "Tributario", "Tributario", "read"),
+        ("pages/page7.py", "Inventario", "Inventario", "read"),
+        ("pages/page8.py", "Compras", "Compras", "read"),
+        ("pages/page9.py", "Edo. Cta. Rutero", "Rutero", "read"),
+        ("pages/page10.py", "Ganancias Ruteros", "Rutero", "create"),
+    ]
+
+    for page, label, modulo, permiso in pages_config:
+        if es_admin or rol_user.has_permission(modulo, permiso):
+            st.page_link(page, label=label, icon=None)
+
     st.page_link("pages/page99.py", label="Configuración", icon=None)
 
     st.write("\n" * 2)
-    l_modulos = ['DOEL', 'PANA']
+    l_modulos = ["PANA", "DOEL"]
+
     # administra el acceso del usuario a los módulos
-    if ClsUsuariosRoles.roles().get('DOEL', 0) == 0:
-        l_modulos.pop(0)
-    elif ClsUsuariosRoles.roles().get('PANA', 0) == 0:
-        l_modulos.pop(1)        
+    es_admin = st.session_state.rol_user.has_permission("Administrador", "read")
+    tiene_mod_der = st.session_state.rol_user.has_permission("PANA", "read")
+    tiene_mod_izq = st.session_state.rol_user.has_permission("DOEL", "read")
 
-    indice_mod = l_modulos.index(ClsEmpresa.modulo_seleccionado())
-    empresa_select = st.selectbox('Seleccione la empresa:', l_modulos, 
-                                  index=indice_mod, 
-                                  on_change=al_cambiar_empresa)
+    if not es_admin:
+        if not tiene_mod_der and "DOEL" in l_modulos:
+            l_modulos.remove("DOEL")
+        if not tiene_mod_izq and "PANA" in l_modulos:
+            l_modulos.remove("PANA")
 
-    if st.button("Cerrar sesión"):
-        st.cache_data.clear()
+    if not l_modulos:
+        st.warning("No tienes acceso a ningun modulo.")
+        return
+
+    user = st.session_state.get("usuario")
+    mod_select = st.session_state.cls_empresa._usuarios.get(user, {}).get("modulo")
+    if mod_select not in l_modulos:
+        mod_select = l_modulos[0]
+
+    modulo = st.radio(
+        "Seleccione la empresa:",
+        l_modulos,
+        index=l_modulos.index(mod_select),
+        on_change=al_cambiar_empresa,
+        horizontal=True,
+    )
+    if modulo is None:
+        modulo = l_modulos[0]
+
+    st.session_state.cls_empresa = ClsEmpresa(st.session_state.usuario, modulo, False)
+
+    if st.button(
+        "Cerrar sesión",
+        type="primary",
+    ):
         logout()
 
-def al_cambiar_empresa():
-    modulo = ClsEmpresa.modulo_seleccionado()   
-    if modulo == 'DOEL':
-       ClsEmpresa('PANA')
-    else:
-       ClsEmpresa('DOEL')
     st.cache_data.clear()
 
+
 def logout():
+    # ClsEmpresa.limpiar_usuario(st.session_state.get("usuario", ""))
     st.session_state.logged_in = False
     st.info("Se ha cerrado la sesión con éxito!")
     sleep(0.5)
-    st.switch_page("inicio.py")
+    st.switch_page("app.py")
+
+
+def al_cambiar_empresa():
+    # Reinicia las variables de sesión relacionadas con las paginas
+    st.cache_data.clear()
