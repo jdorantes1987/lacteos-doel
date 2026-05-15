@@ -46,7 +46,7 @@ def _extracted_from_make_sidebar():
     st.page_link("pages/page1.py", label="Inicio", icon=None)
 
     pages_config = [
-        ("pages/page2.py", "Notas de entrega", "Notas", "read"),
+        # ("pages/page2.py", "Notas de entrega", "Notas", "read"),
         ("pages/page3.py", "Gestión Ruteros", "Rutero", "create"),
         ("pages/page4.py", "Procesos Masivos", "ProcesosMasivos", "read"),
         ("pages/page5.py", "Cuentas por cobrar", "CxC", "read"),

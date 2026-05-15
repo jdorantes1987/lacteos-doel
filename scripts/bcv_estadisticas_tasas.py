@@ -252,7 +252,7 @@ def actulizar_file_tasas():
 
 # Actualiza el archivo tasas_BCV.xlsx de forma manual
 def actulizar_file_tasas_manual(fecha, valor_tasa):
-    locale.setlocale(locale.LC_ALL, "es_ES")
+    locale.setlocale(locale.LC_ALL, "es_ES.UTF-8")
     df_file_tasa = datos_estad_bcv()
     columns = [
         "cod_mon",

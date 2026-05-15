@@ -1021,8 +1021,8 @@ class DatosProfit:
             anio=anio, mes=mes, usd=conv_usd, vendedor=vendedor
         )
         df_fact["anio"] = df_fact["fec_reg"].dt.year  # Obtiene el año
-        locale.setlocale(locale.LC_ALL, "es_ES")
-        df_fact["mes"] = df_fact["fec_reg"].dt.month_name(locale="es_ES").str[:3]
+        locale.setlocale(locale.LC_ALL, "es_ES.UTF-8")
+        df_fact["mes"] = df_fact["fec_reg"].dt.month_name(locale="es_ES.UTF-8").str[:3]
         locale.setlocale(locale.LC_ALL, "")
         return pivot_table(
             df_fact,
@@ -1046,8 +1046,8 @@ class DatosProfit:
             anio=anio, mes=mes, usd=conv_usd, vendedor=vendedor
         )
         df_fact["anio"] = df_fact["fec_reg"].dt.year  # Obtiene el año
-        locale.setlocale(locale.LC_ALL, "es_ES")
-        df_fact["mes"] = df_fact["fec_reg"].dt.month_name(locale="es_ES").str[:3]
+        locale.setlocale(locale.LC_ALL, "es_ES.UTF-8")
+        df_fact["mes"] = df_fact["fec_reg"].dt.month_name(locale="es_ES.UTF-8").str[:3]
         locale.setlocale(locale.LC_ALL, "")
         df_x_vendedor = df_fact if vendedor == "all" else df_fact[df_fact["ven_des"]]
         return (

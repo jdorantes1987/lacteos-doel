@@ -1,14 +1,20 @@
 from scripts.sql_read import get_read_sql
+from pandas import DataFrame
+
 
 class PedidosVentasConsultas:
     def __init__(self, conexion):
         self.conexion = conexion
-        
+
     def data_pedido_con_detalle(self, **kwargs):
-            fecha_d, fecha_h = kwargs.get('fecha_d', 'all'), kwargs.get('fecha_h', 'all')
-            all_records = True if fecha_d == 'all' or fecha_h == 'all' else False
-            where = f"WHERE ped.anulado=0" if all_records else f"WHERE ped.anulado=0 AND ped.fec_reg >= '{fecha_d}' and ped.fec_reg <='{fecha_h}'"
-            sql = f"""
+        fecha_d, fecha_h = kwargs.get("fecha_d", "all"), kwargs.get("fecha_h", "all")
+        all_records = True if fecha_d == "all" or fecha_h == "all" else False
+        where = (
+            f"WHERE ped.anulado=0"
+            if all_records
+            else f"WHERE ped.anulado=0 AND ped.fec_reg >= '{fecha_d}' and ped.fec_reg <='{fecha_h}'"
+        )
+        sql = f"""
                 SELECT reng_num, RTRIM(ped.doc_num) as doc_num, RTRIM(dped.co_art) as co_art, art.art_des,
                         ped.fec_emis, ped.fec_reg, ped.descrip,
                         year(ped.fec_reg) AS anio, month(ped.fec_reg) AS mes, RTRIM(ped.co_ven) as co_ven, RTRIM(ped.co_cli) as co_cli, 
@@ -28,12 +34,51 @@ class PedidosVentasConsultas:
                 {where} 
                 ORDER BY ped.fec_reg, ped.doc_num
                 """
-            fact_det = get_read_sql(sql, self.conexion)
-            fact_det['co_tipo_doc'] = 'PCLI'
-            return fact_det
+        expected_columns = [
+            "reng_num",
+            "doc_num",
+            "co_art",
+            "art_des",
+            "fec_emis",
+            "fec_reg",
+            "descrip",
+            "anio",
+            "mes",
+            "co_ven",
+            "co_cli",
+            "co_tran",
+            "cli_des",
+            "ven_des",
+            "des_tran",
+            "co_alma",
+            "co_precio",
+            "co_uni",
+            "equivalencia",
+            "es_unidad",
+            "total_art",
+            "art_monto",
+            "art_monto_uni",
+            "prec_vta",
+            "monto_base_item",
+            "iva",
+            "total_item",
+            "igtf",
+            "saldo_total_doc",
+            "campo8",
+        ]
+
+        fact_det = get_read_sql(sql, self.conexion)
+        if not isinstance(fact_det, DataFrame):
+            fact_det = DataFrame(columns=expected_columns)
+        else:
+            for col in expected_columns:
+                if col not in fact_det.columns:
+                    fact_det[col] = None
+        fact_det["co_tipo_doc"] = "PCLI"
+        return fact_det
 
     def asociar_devolucion_pedido(self, cursor, numero_devolucion, numeros_pedidos):
-        for factura in numeros_pedidos:        
+        for factura in numeros_pedidos:
             sql = f"""
                 UPDATE saPedidoVenta SET campo8='{numero_devolucion}'
                 WHERE doc_num LIKE '%{factura}%'
